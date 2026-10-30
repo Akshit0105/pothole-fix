@@ -44,3 +44,5 @@ backend/.env
 backend/.venv/
 backend/uploads/
 backend/runs/
+runs/
+runs/
