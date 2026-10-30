@@ -52,6 +52,8 @@ export const CitizenReportPage: React.FC = () => {
   // Step 1: File Upload Handler
   const handleFile = (file: File) => {
     setImageError(null);
+    setAiDetection(null);
+    setAiAttempted(false);
 
     // Validate type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -83,9 +85,25 @@ export const CitizenReportPage: React.FC = () => {
   };
 
   // Helper for evaluation / demo sample image selection
-  const handleSelectSample = (sampleUrl: string) => {
-    setImagePreview(sampleUrl);
+  const handleSelectSample = async (sampleUrl: string) => {
     setImageError(null);
+    setAiDetection(null);
+    setAiAttempted(false);
+    setImageFile(null);
+    setImagePreview('');
+
+    try {
+      const response = await fetch(sampleUrl);
+      if (!response.ok) throw new Error('Unable to load sample image');
+      const blob = await response.blob();
+      const filename = sampleUrl.split('/').pop() || 'sample.jpg';
+      const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+      setImageFile(file);
+      setImagePreview(sampleUrl);
+    } catch (error) {
+      console.error('Sample image loading failed:', error);
+      setImageError('Could not load sample image.');
+    }
   };
 
   // Step 2: Request High-Accuracy GPS Location (Phase 10)
@@ -143,8 +161,7 @@ export const CitizenReportPage: React.FC = () => {
         const result = await detectPothole(imageFile);
         setAiDetection(result);
       } else {
-        // Sample image fallback
-        setAiDetection(STATIC_TEST_SAMPLE);
+        throw new Error('No image file available for live inference');
       }
     } catch {
       setAiDetection({
@@ -332,6 +349,8 @@ export const CitizenReportPage: React.FC = () => {
                       onClick={() => {
                         setImagePreview('');
                         setImageFile(null);
+                        setAiDetection(null);
+                        setAiAttempted(false);
                       }}
                       className="px-2.5 py-1 rounded-md bg-on-surface/75 hover:bg-on-surface text-white text-xs font-semibold backdrop-blur-sm transition-colors flex items-center gap-1"
                     >
@@ -606,6 +625,18 @@ export const CitizenReportPage: React.FC = () => {
                   {aiDetection.severityScore}
                 </p>
               </div>
+            ) : aiDetection?.isModelConnected && !aiDetection.detected ? (
+              <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-blue-700">check_circle</span>
+                  <span className="font-title-md text-blue-900 font-semibold">
+                    AI Model Connected Successfully
+                  </span>
+                </div>
+                <p className="font-body-sm text-blue-800 text-[13px]">
+                  YOLO analyzed the image successfully. No potholes were detected in this photograph.
+                </p>
+              </div>
             ) : (
               /* Graceful Model Not Connected Card */
               <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 space-y-2">
@@ -726,9 +757,13 @@ export const CitizenReportPage: React.FC = () => {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-emerald-700 font-label-sm font-semibold flex items-center gap-1">
                         <span className="material-symbols-outlined text-[16px]">verified</span>
-                        Verified YOLO Detection
+                        {aiDetection.detected
+                          ? 'Pothole Detected by YOLO'
+                          : 'YOLO Connected - No Pothole Detected'}
                       </span>
-                      <SeverityBadge severity={aiDetection.severityScore} size="sm" />
+                      {aiDetection.detected && (
+                        <SeverityBadge severity={aiDetection.severityScore} size="sm" />
+                      )}
                     </div>
                   ) : (
                     <span className="text-secondary font-label-sm text-[11px] block mt-1">

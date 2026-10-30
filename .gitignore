@@ -37,3 +37,10 @@ backend/__pycache__
 backend/.env
 backend/.env.*
 !backend/.env.example
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.venv/
+backend/uploads/
+backend/runs/
