@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './apiClient';
+import { apiClient } from './apiClient';
 import type { AIDetectionResult } from '../types';
 
 export interface RawYoloDetectionResponse {
@@ -26,23 +26,13 @@ export async function detectPothole(imageFile: File): Promise<AIDetectionResult>
   const formData = new FormData();
   formData.append('file', imageFile);
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
-
   try {
-    const response = await fetch(`${API_BASE_URL}/ai/detect`, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal,
-    });
+    const data = await apiClient.upload<RawYoloDetectionResponse>(
+      '/ai/detect',
+      formData,
+      { timeoutMs: 6000, skipAuth: true }
+    );
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`AI Detection service returned HTTP ${response.status}`);
-    }
-
-    const data: RawYoloDetectionResponse = await response.json();
     const isModelConnected = data.status !== 'AI_UNAVAILABLE' && data.isModelConnected !== false;
 
     return {
@@ -50,7 +40,7 @@ export async function detectPothole(imageFile: File): Promise<AIDetectionResult>
       detected: data.detected,
       confidence: data.confidence,
       severityScore: data.severity,
-      boundingBoxes: data.boxes.map((b) => ({
+      boundingBoxes: (data.boxes || []).map((b) => ({
         x: b.x,
         y: b.y,
         width: b.width,
@@ -62,8 +52,6 @@ export async function detectPothole(imageFile: File): Promise<AIDetectionResult>
       rawResponse: data,
     };
   } catch {
-    clearTimeout(timeoutId);
-
     // Explicitly return Model Not Connected state without fabricating fake predictions
     return {
       isModelConnected: false,

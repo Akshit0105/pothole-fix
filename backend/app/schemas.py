@@ -84,6 +84,10 @@ class VerifyReportRequest(CamelModel):
     verified: bool
     reason: Optional[str] = None
 
+class UpdateReportSeverityRequest(CamelModel):
+    severity: str
+    note: Optional[str] = None
+
 class ReportResponse(CamelModel):
     id: str
     tracking_number: str = Field(..., serialization_alias="trackingNumber")

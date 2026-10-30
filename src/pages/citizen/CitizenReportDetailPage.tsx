@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { reportsService } from '../../services/reportsService';
+import { ApiError } from '../../services/apiClient';
 import type { PotholeReport } from '../../types';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -15,24 +16,54 @@ export const CitizenReportDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<PotholeReport | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadReport = async () => {
+    if (!id) return;
+    setLoadError(null);
+    try {
+      const data = await reportsService.getReportById(id);
+      setReport(data || null);
+    } catch (err) {
+      console.error('Failed to load report detail', err);
+      if (err instanceof ApiError && err.status === 404) {
+        setReport(null);
+      } else {
+        setLoadError(err instanceof Error ? err.message : 'Unable to load report from server.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadReport() {
-      if (!id) return;
-      try {
-        const data = await reportsService.getReportById(id);
-        setReport(data || null);
-      } catch (err) {
-        console.error('Failed to load report detail', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     loadReport();
   }, [id]);
 
   if (isLoading) {
     return <LoadingState message="Fetching report inspection record..." />;
+  }
+
+  if (loadError) {
+    return (
+      <Card padding="lg" className="text-center py-12 space-y-3 max-w-xl mx-auto border-error/30">
+        <div className="w-12 h-12 rounded-full bg-error-container text-on-error-container flex items-center justify-center mx-auto mb-2">
+          <span className="material-symbols-outlined text-[24px]">cloud_off</span>
+        </div>
+        <h2 className="font-display-hero text-headline-sm text-on-surface">Unable to Load Report</h2>
+        <p className="font-body-sm text-secondary">{loadError}</p>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button variant="primary" size="md" onClick={() => { setIsLoading(true); loadReport(); }}>
+            Retry
+          </Button>
+          <Link to="/citizen/reports">
+            <Button variant="secondary" size="md">
+              Return to Submissions
+            </Button>
+          </Link>
+        </div>
+      </Card>
+    );
   }
 
   if (!report) {

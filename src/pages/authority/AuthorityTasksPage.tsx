@@ -13,18 +13,23 @@ export const AuthorityTasksPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [teamFilter, setTeamFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTasks = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await tasksService.getAllTasks();
+      setTasks(data);
+    } catch (err) {
+      console.error('Failed to load tasks', err);
+      setError(err instanceof Error ? err.message : 'Unable to load municipal work orders.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadTasks() {
-      try {
-        const data = await tasksService.getAllTasks();
-        setTasks(data);
-      } catch (err) {
-        console.error('Failed to load tasks', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     loadTasks();
   }, []);
 
@@ -73,6 +78,21 @@ export const AuthorityTasksPage: React.FC = () => {
         </Link>
       </div>
 
+      {error && (
+        <div className="p-4 rounded-xl bg-error-container text-on-error-container flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-error/20">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[24px] text-error shrink-0">error</span>
+            <div>
+              <p className="font-semibold text-sm">Failed to load work orders</p>
+              <p className="text-xs opacity-90">{error}</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadTasks}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Filter Bar */}
       <Card padding="md" className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
@@ -110,7 +130,8 @@ export const AuthorityTasksPage: React.FC = () => {
 
       {/* Task List */}
       {filteredTasks.length === 0 ? (
-        <Card padding="lg" className="text-center py-12 space-y-2">
+        !error && (
+          <Card padding="lg" className="text-center py-12 space-y-2">
           <span className="material-symbols-outlined text-[36px] text-secondary mx-auto block">
             assignment_late
           </span>
@@ -119,6 +140,7 @@ export const AuthorityTasksPage: React.FC = () => {
             No active work orders match your current filter settings.
           </p>
         </Card>
+        )
       ) : (
         <div className="space-y-3">
           {filteredTasks.map((task) => (

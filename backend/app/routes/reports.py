@@ -21,6 +21,7 @@ from ..schemas import (
     GeoLocationSchema,
     StatusHistorySchema,
     VerifyReportRequest,
+    UpdateReportSeverityRequest,
     CreateReportJson,
 )
 from ..dependencies import get_current_user, require_role, require_roles
@@ -322,6 +323,80 @@ def verify_report(
     db.commit()
     db.refresh(report)
     return format_report_response(report, request)
+
+@router.patch("/{report_id}/severity", response_model=ReportResponse)
+def update_report_severity(
+    report_id: str,
+    payload: UpdateReportSeverityRequest,
+    request: Request,
+    current_user: User = Depends(require_role("AUTHORITY")),
+    db: Session = Depends(get_db),
+):
+    """
+    PATCH /reports/{id}/severity
+    Authority overrides defect severity level with audit trail logging.
+    """
+    report = db.query(Report).filter(
+        (Report.id == report_id) | (Report.tracking_number == report_id)
+    ).first()
+
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report #{report_id} not found."
+        )
+
+    raw_sev = payload.severity.strip().upper() if isinstance(payload.severity, str) else ""
+    if raw_sev not in {"CRITICAL", "HIGH", "MODERATE", "MEDIUM", "LOW"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid severity level '{payload.severity}'. Allowed values: CRITICAL, HIGH, MODERATE, MEDIUM, LOW."
+        )
+
+    prev_severity = report.severity or "LOW"
+
+    try:
+        # 1. Update Report severity and updated_at (Report.status remains unchanged)
+        report.severity = raw_sev
+        report.updated_at = datetime.now(timezone.utc)
+
+        # 2. Update ai_detection_json while preserving all other existing metadata
+        if report.ai_detection_json:
+            try:
+                ai_data = json.loads(report.ai_detection_json)
+            except Exception:
+                ai_data = {}
+        else:
+            ai_data = {}
+
+        ai_data["severityScore"] = raw_sev
+        ai_data["severityOverridden"] = True
+        report.ai_detection_json = json.dumps(ai_data)
+
+        # 3. Create StatusHistory audit record
+        reason_text = f" Reason: {payload.note.strip()}" if payload.note and payload.note.strip() else ""
+        audit_note = f"Authority adjusted severity from {prev_severity} to {raw_sev}.{reason_text}"
+
+        history = StatusHistory(
+            report_id=report.id,
+            actor_id=current_user.id,
+            actor_name=current_user.name,
+            status=report.status,
+            note=audit_note,
+        )
+        db.add(history)
+
+        db.commit()
+        db.refresh(report)
+        return format_report_response(report, request)
+    except Exception as e:
+        db.rollback()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update report severity due to a database error."
+        )
 
 @router.post("/reset-demo")
 def reset_demo_endpoint(db: Session = Depends(get_db)):

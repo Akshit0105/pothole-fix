@@ -417,6 +417,11 @@ const HttpReportsRepository = {
     });
   },
 
+  /**
+   * Note (F-06): In Real API Mode, report statuses transition automatically on the backend
+   * via repair task endpoints (/tasks/{id}/start, /tasks/{id}/completion, /tasks/{id}/review).
+   * Kept here for interface parity with MockReportsRepository.
+   */
   async updateReportStatus(
     id: string,
     status: ReportStatus,
@@ -428,21 +433,25 @@ const HttpReportsRepository = {
     });
   },
 
+  /**
+   * Note (F-01): Dedicated authority severity override endpoint.
+   * Real API Mode calls PATCH /reports/{id}/severity.
+   */
   async updateReportSeverity(
     id: string,
     severity: SeverityLevel,
     note?: string
   ): Promise<PotholeReport> {
-    try {
-      return await apiClient.patch<PotholeReport>(`/reports/${id}/status`, {
-        severity,
-        note,
-      });
-    } catch {
-      return MockReportsRepository.updateReportSeverity(id, severity, note);
-    }
+    return apiClient.patch<PotholeReport>(`/reports/${id}/severity`, {
+      severity,
+      note,
+    });
   },
 
+  /**
+   * Note (F-06): In Real API Mode, repair completions are submitted via /tasks/{id}/completion.
+   * Kept here for interface parity with MockReportsRepository.
+   */
   async submitRepairCompletion(
     id: string,
     restoredImageUrl: string,
@@ -532,13 +541,12 @@ export const reportsService = {
   },
 
   async resetDemoReports(): Promise<void> {
+    if (!isMockMode()) {
+      console.warn('Database reset is disabled in Real API Mode.');
+      return;
+    }
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SEED_REPORTS));
-    }
-    try {
-      await apiClient.post('/reports/reset-demo', {});
-    } catch {
-      // Offline fallback
     }
   },
 };
