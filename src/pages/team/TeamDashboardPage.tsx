@@ -8,6 +8,7 @@ import { Button } from '../../components/common/Button';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { PotholeImage } from '../../components/common/PotholeImage';
 import { LoadingState } from '../../components/common/LoadingState';
+import { TeamTasksDispatchMap } from '../../components/team/TeamTasksDispatchMap';
 
 export const TeamDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export const TeamDashboardPage: React.FC = () => {
   const reworkCount = tasks.filter((t) => t.status === 'REWORK_REQUIRED').length;
 
   if (isLoading) {
-    return <LoadingState message="Loading Asphalt Unit 04 workspace..." />;
+    return <LoadingState message="Loading Field Repair workspace..." />;
   }
 
   return (
@@ -61,10 +62,10 @@ export const TeamDashboardPage: React.FC = () => {
             Field Maintenance Dispatch
           </div>
           <h1 className="font-display-hero text-headline-sm font-bold text-on-surface">
-            {user?.name || 'Gurpreet Singh'} · Crew Lead
+            {user?.name || 'Field Repair Crew'} · {user?.title || 'Crew Lead'}
           </h1>
           <p className="font-body-sm text-body-sm text-secondary">
-            Punjab PWD Unit 04 · Active road maintenance work orders and inspection dispatches.
+            {user?.unit || 'Field Repair Squad'} · Active road maintenance work orders and inspection dispatches.
           </p>
         </div>
 
@@ -128,6 +129,26 @@ export const TeamDashboardPage: React.FC = () => {
           </span>
         </Card>
       </div>
+
+      {/* Dispatch Field Navigation Map (Phase 4) */}
+      <Card padding="md" className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="font-display-hero text-base font-bold text-on-surface flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-rose-600 text-[20px]">near_me</span>
+              <span>Field Repair Dispatch &amp; Route Map</span>
+            </h2>
+            <p className="font-body-sm text-xs text-secondary">
+              GPS markers show assigned work orders. Click any pin to open turn-by-turn navigation or view task workspace.
+            </p>
+          </div>
+          <span className="text-xs font-mono font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
+            {tasks.length} Assigned Sites
+          </span>
+        </div>
+
+        <TeamTasksDispatchMap tasks={tasks} heightClass="h-72 sm:h-80" />
+      </Card>
 
       {/* Assigned Tasks Feed */}
       <Card padding="none" className="overflow-hidden">

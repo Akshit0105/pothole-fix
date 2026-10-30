@@ -28,6 +28,7 @@ class UserResponse(CamelModel):
     title: Optional[str] = None
     department: Optional[str] = None
     unit: Optional[str] = None
+    team_id: Optional[str] = Field(None, serialization_alias="teamId")
 
 class AuthResponse(CamelModel):
     token: str

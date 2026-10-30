@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { tasksService } from '../../services/tasksService';
 import type { RepairTask } from '../../types';
 import { Card } from '../../components/common/Card';
@@ -7,8 +8,10 @@ import { Button } from '../../components/common/Button';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { PotholeImage } from '../../components/common/PotholeImage';
 import { LoadingState } from '../../components/common/LoadingState';
+import { TeamTasksDispatchMap } from '../../components/team/TeamTasksDispatchMap';
 
 export const TeamTasksPage: React.FC = () => {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<RepairTask[]>([]);
   const [filter, setFilter] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState(true);
@@ -16,7 +19,7 @@ export const TeamTasksPage: React.FC = () => {
   useEffect(() => {
     async function loadTasks() {
       try {
-        const data = await tasksService.getMyTasks('team-04');
+        const data = await tasksService.getMyTasks(user?.teamId);
         setTasks(data);
       } catch (err) {
         console.error('Failed to load tasks', err);
@@ -67,10 +70,10 @@ export const TeamTasksPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-surface-container-high">
         <div>
           <h1 className="font-display-hero text-headline-sm font-bold text-on-surface">
-            Punjab PWD Unit 04 Work Orders
+            {user?.unit || 'Field Repair Squad'} Work Orders
           </h1>
           <p className="font-body-sm text-body-sm text-secondary">
-            Field repair orders assigned to Gurpreet Singh and repair crew.
+            Field repair orders assigned to {user?.name || 'repair squad'}.
           </p>
         </div>
       </div>
@@ -92,6 +95,20 @@ export const TeamTasksPage: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {/* Task Location Map (Phase 4) */}
+      <Card padding="md" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display-hero text-sm sm:text-base font-bold text-on-surface flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-rose-600 text-[18px]">map</span>
+            <span>Assigned Tasks Geographic Distribution</span>
+          </h2>
+          <span className="text-xs text-secondary">
+            Showing {filteredTasks.length} active sites
+          </span>
+        </div>
+        <TeamTasksDispatchMap tasks={filteredTasks} heightClass="h-64 sm:h-72" />
+      </Card>
 
       {/* Work Orders List */}
       {filteredTasks.length === 0 ? (

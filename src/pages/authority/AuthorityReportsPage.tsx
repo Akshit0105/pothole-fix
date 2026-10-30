@@ -40,7 +40,11 @@ export const AuthorityReportsPage: React.FC = () => {
   // Filter and prioritize: Critical & High first by default (Phase 7)
   const filteredAndSortedReports = reports
     .filter((r) => {
-      if (statusFilter !== 'ALL' && r.status !== statusFilter) return false;
+      if (statusFilter === 'ALL') {
+        if (r.status === 'RESOLVED') return false; // Strictly exclude resolved from active triage queue
+      } else if (r.status !== statusFilter) {
+        return false;
+      }
       if (severityFilter !== 'ALL') {
         const score = r.aiDetection?.severityScore;
         if (severityFilter === 'MODERATE' && (score === 'MODERATE' || score === 'MEDIUM')) {
@@ -134,7 +138,7 @@ export const AuthorityReportsPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 rounded-lg bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none"
             >
-              <option value="ALL">All Statuses ({reports.length})</option>
+              <option value="ALL">All Active Hazards (Excl. Closed)</option>
               <option value="SUBMITTED">Submitted</option>
               <option value="VERIFIED">Verified</option>
               <option value="ASSIGNED">Assigned</option>

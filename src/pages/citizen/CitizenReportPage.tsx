@@ -199,7 +199,7 @@ export const CitizenReportPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-5xl lg:max-w-6xl mx-auto space-y-6">
       {/* Top Breadcrumb */}
       <div className="flex items-center justify-between">
         <Link
@@ -372,16 +372,16 @@ export const CitizenReportPage: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 2: SELECT LOCATION (Phase 10) */}
+        {/* STEP 2: SELECT LOCATION (Phase 10 / UI Master Upgrade 2-Column Desktop Layout) */}
         {currentStep === 2 && (
           <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-surface-container-high">
               <div>
                 <h2 className="font-display-hero text-headline-sm font-bold text-on-surface">
                   Pin Road Hazard Location
                 </h2>
                 <p className="font-body-sm text-body-sm text-secondary mt-0.5">
-                  Use high-accuracy GPS or drag the pin to set the exact street location.
+                  Position the pin at the exact street coordinates using high-accuracy GPS or interactive map dragging.
                 </p>
               </div>
 
@@ -412,85 +412,114 @@ export const CitizenReportPage: React.FC = () => {
               </div>
             )}
 
-            {/* Quick Presets for Evaluation */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-semibold text-secondary">Presets:</span>
-              {INDIAN_PRESETS.map((p) => (
-                <button
-                  key={p.name}
-                  type="button"
-                  onClick={() => {
-                    setCoordinates([p.lat, p.lng]);
-                    setAddress(p.name);
-                  }}
-                  className="px-2.5 py-1 rounded-md text-xs bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/30 transition-colors"
-                >
-                  {p.name.split(',')[0]}
-                </button>
-              ))}
-            </div>
+            {/* 2-Column Layout on Desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Prominent Leaflet Map Preview */}
+              <div className="lg:col-span-7 space-y-2">
+                <div className="flex items-center justify-between text-xs text-secondary font-medium">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[15px] text-primary">pin_drop</span>
+                    <span>Interactive OpenStreetMap Preview</span>
+                  </span>
+                  <span className="font-mono text-[11px] text-primary bg-primary/10 px-2 py-0.5 rounded">
+                    {coordinates[0].toFixed(5)}° N, {coordinates[1].toFixed(5)}° E
+                  </span>
+                </div>
 
-            {/* Interactive Leaflet OpenStreetMap */}
-            <LocationPickerMap
-              position={coordinates}
-              onPositionChange={(lat, lng) => {
-                setCoordinates([lat, lng]);
-                setAddress(`Lat: ${lat.toFixed(5)}° N, Lng: ${lng.toFixed(5)}° E`);
-              }}
-            />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-body-sm">
-              <div>
-                <label className="block font-title-md text-label-md text-on-surface mb-1">
-                  Street Address or Cross-Street
-                </label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. Sector 17 Plaza Corridor, Chandigarh"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-container-low text-on-surface border border-outline-variant/30 focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20"
-                />
+                <div className="rounded-xl overflow-hidden border border-outline-variant/30 shadow-xs">
+                  <LocationPickerMap
+                    position={coordinates}
+                    onPositionChange={(lat, lng) => {
+                      setCoordinates([lat, lng]);
+                      setAddress(`Lat: ${lat.toFixed(5)}° N, Lng: ${lng.toFixed(5)}° E`);
+                    }}
+                  />
+                </div>
+                <p className="text-[11px] text-secondary">
+                  Click anywhere on the map or drag the pin directly over the asphalt pothole location.
+                </p>
               </div>
 
-              <div>
-                <label className="block font-title-md text-label-md text-on-surface mb-1">
-                  Optional Landmark / Reference
-                </label>
-                <input
-                  type="text"
-                  value={landmark}
-                  onChange={(e) => setLandmark(e.target.value)}
-                  placeholder="e.g. Near Sector 17 fountain, westbound corridor"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-container-low text-on-surface border border-outline-variant/30 focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20"
-                />
+              {/* Right Column: GPS presets, address fields & action buttons */}
+              <div className="lg:col-span-5 space-y-4 bg-surface-container-low/40 p-4 sm:p-5 rounded-2xl border border-outline-variant/30">
+                {/* Indian Corridor Quick Presets */}
+                <div className="space-y-1.5">
+                  <span className="text-xs font-semibold text-secondary uppercase tracking-wider block">
+                    Quick Corridor Presets:
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {INDIAN_PRESETS.map((p) => (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={() => {
+                          setCoordinates([p.lat, p.lng]);
+                          setAddress(p.name);
+                        }}
+                        className="px-2.5 py-1 rounded-md text-xs bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant/30 transition-colors font-medium"
+                      >
+                        {p.name.split(',')[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Street Address Input */}
+                <div>
+                  <label className="block font-title-md text-label-md text-on-surface mb-1">
+                    Street Address or Cross-Street
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. Sector 17 Plaza Corridor, Chandigarh"
+                    className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs sm:text-sm"
+                  />
+                </div>
+
+                {/* Optional Landmark */}
+                <div>
+                  <label className="block font-title-md text-label-md text-on-surface mb-1">
+                    Optional Landmark / Reference
+                  </label>
+                  <input
+                    type="text"
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    placeholder="e.g. Near Sector 17 fountain, westbound corridor"
+                    className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs sm:text-sm"
+                  />
+                </div>
+
+                {/* Hazard Description */}
+                <div>
+                  <label className="block font-title-md text-label-md text-on-surface mb-1">
+                    Road Hazard Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe road condition, depth severity, loose gravel, or vehicle swerving hazards..."
+                    className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs sm:text-sm"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-3 border-t border-surface-container-high flex items-center justify-between gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setCurrentStep(1)}>
+                    Back to Image
+                  </Button>
+                  <Button
+                    size="md"
+                    onClick={() => setCurrentStep(3)}
+                    iconRight={<span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+                  >
+                    Proceed to AI Analysis
+                  </Button>
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className="block font-title-md text-label-md text-on-surface mb-1">
-                Road Hazard Description
-              </label>
-              <textarea
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe road condition, depth severity, loose gravel, or vehicle swerving hazards..."
-                className="w-full px-3 py-2 rounded-lg bg-surface-container-low text-on-surface border border-outline-variant/30 focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-
-            <div className="pt-4 border-t border-surface-container-high flex items-center justify-between">
-              <Button variant="ghost" size="md" onClick={() => setCurrentStep(1)}>
-                Back to Image
-              </Button>
-              <Button
-                size="md"
-                onClick={() => setCurrentStep(3)}
-                iconRight={<span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-              >
-                Proceed to AI Analysis
-              </Button>
             </div>
           </div>
         )}

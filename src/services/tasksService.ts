@@ -42,7 +42,18 @@ const MockTasksRepository = {
   },
 
   async getMyTasks(teamId?: string): Promise<RepairTask[]> {
-    return getStoredTasks().filter((t) => (teamId ? t.assignedTeamId === teamId : t.assignedTeamId === 'team-04'));
+    let targetTeamId = teamId;
+    if (!targetTeamId && typeof localStorage !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('potholefix_user');
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          targetTeamId = u.teamId || u.team_id;
+        }
+      } catch {}
+    }
+    targetTeamId = targetTeamId || 'team-04';
+    return getStoredTasks().filter((t) => t.assignedTeamId === targetTeamId);
   },
 
   async getPendingApprovals(): Promise<RepairTask[]> {

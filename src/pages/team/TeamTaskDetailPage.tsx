@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { tasksService } from '../../services/tasksService';
 import { reportsService } from '../../services/reportsService';
 import type { RepairTask, PotholeReport } from '../../types';
@@ -12,6 +13,7 @@ import { LoadingState } from '../../components/common/LoadingState';
 
 export const TeamTaskDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [task, setTask] = useState<RepairTask | null>(null);
   const [report, setReport] = useState<PotholeReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +27,17 @@ export const TeamTaskDetailPage: React.FC = () => {
   );
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [crewLocation, setCrewLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCrewLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {},
+        { timeout: 5000, enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   const loadData = async () => {
     if (!id) return;
@@ -50,7 +63,7 @@ export const TeamTaskDetailPage: React.FC = () => {
   const handleStartRepair = async () => {
     if (!task) return;
     try {
-      const updated = await tasksService.startTask(task.id, 'Gurpreet Singh (Crew Lead)');
+      const updated = await tasksService.startTask(task.id, user ? `${user.name} (${user.title || 'Crew Lead'})` : 'Crew Lead');
       setTask(updated);
       setActionNotice('Repair status updated to IN_PROGRESS. Work started on site.');
       await loadData();
@@ -97,7 +110,7 @@ export const TeamTaskDetailPage: React.FC = () => {
         task.id,
         evidencePreview,
         repairNotes,
-        'Gurpreet Singh (Crew Lead)',
+        user ? `${user.name} (${user.title || 'Crew Lead'})` : 'Crew Lead',
         evidenceFile || undefined
       );
       setTask(updated);
@@ -132,11 +145,18 @@ export const TeamTaskDetailPage: React.FC = () => {
     );
   }
 
-  const coordinates = task.location || report?.location || { latitude: 30.7398, longitude: 76.7827, address: 'Sector 17 Plaza Corridor, Chandigarh' };
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${coordinates.latitude},${coordinates.longitude}`;
+  const coordinates = report?.location || task.location || {
+    latitude: 30.7398,
+    longitude: 76.7827,
+    address: 'Sector 17 Plaza Corridor, Chandigarh',
+  };
+
+  const googleMapsDirectionsUrl = crewLocation
+    ? `https://www.google.com/maps/dir/?api=1&origin=${crewLocation.lat},${crewLocation.lng}&destination=${coordinates.latitude},${coordinates.longitude}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${coordinates.latitude},${coordinates.longitude}`;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl lg:max-w-6xl mx-auto space-y-6">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <Link
@@ -147,7 +167,7 @@ export const TeamTaskDetailPage: React.FC = () => {
           <span>Back to Assigned Tasks</span>
         </Link>
         <span className="font-code-sm text-label-sm text-secondary">
-          Punjab PWD Unit 04 · Field Workspace
+          {task.assignedTeamName || user?.unit || 'Field Repair Crew'} · Field Workspace
         </span>
       </div>
 
@@ -184,15 +204,16 @@ export const TeamTaskDetailPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Google Maps External Directions Link */}
+          {/* Navigate to Repair Location Button */}
           <a
-            href={googleMapsUrl}
+            href={googleMapsDirectionsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center gap-1.5 font-label-sm text-primary transition-colors shrink-0 border border-outline-variant/30"
+            className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white flex items-center gap-2 font-bold text-xs shadow-sm transition-all shrink-0 hover:shadow-md"
+            title="Open Turn-by-Turn GPS Directions to Repair Site"
           >
-            <span className="material-symbols-outlined text-[18px]">navigation</span>
-            <span>Open in Google Maps</span>
+            <span className="material-symbols-outlined text-[18px]">turn_sharp_right</span>
+            <span>Navigate to Repair Location</span>
           </a>
         </div>
 
@@ -232,13 +253,22 @@ export const TeamTaskDetailPage: React.FC = () => {
 
           {/* Location Map with Leaflet */}
           <div className="space-y-2">
-            <span className="font-headline-sm text-label-sm uppercase tracking-wider text-secondary font-semibold block">
-              Work Order Site Map
-            </span>
-            <ReportLocationMap
-              position={[coordinates.latitude, coordinates.longitude]}
-              address={coordinates.address}
-            />
+            <div className="flex items-center justify-between">
+              <span className="font-headline-sm text-label-sm uppercase tracking-wider text-secondary font-semibold block">
+                Work Order Site Map
+              </span>
+              <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded">
+                {coordinates.latitude.toFixed(5)}° N, {coordinates.longitude.toFixed(5)}° E
+              </span>
+            </div>
+            <div className="h-56 sm:h-64 rounded-xl overflow-hidden border border-outline-variant/30">
+              <ReportLocationMap
+                position={[coordinates.latitude, coordinates.longitude]}
+                address={coordinates.address}
+                reportId={task.trackingNumber || task.id}
+                zoom={16}
+              />
+            </div>
           </div>
         </div>
 
