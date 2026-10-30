@@ -14,23 +14,18 @@ export const CitizenReportsListPage: React.FC = () => {
   const [reports, setReports] = useState<PotholeReport[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'RESOLVED'>('ALL');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadReports = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await reportsService.getMyReports(user?.email);
-      setReports(data);
-    } catch (err) {
-      console.error('Failed to load reports', err);
-      setError(err instanceof Error ? err.message : 'Unable to load your hazard reports.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
+    async function loadReports() {
+      try {
+        const data = await reportsService.getMyReports(user?.email);
+        setReports(data);
+      } catch (err) {
+        console.error('Failed to load reports', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
     loadReports();
   }, [user]);
 
@@ -79,21 +74,6 @@ export const CitizenReportsListPage: React.FC = () => {
         </Link>
       </div>
 
-      {error && (
-        <div className="p-4 rounded-xl bg-error-container text-on-error-container flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-error/20">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[24px] text-error shrink-0">error</span>
-            <div>
-              <p className="font-semibold text-sm">Failed to load reports</p>
-              <p className="text-xs opacity-90">{error}</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={loadReports}>
-            Retry
-          </Button>
-        </div>
-      )}
-
       {/* Filter Tabs */}
       <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg w-fit border border-outline-variant/30">
         {(['ALL', 'ACTIVE', 'RESOLVED'] as const).map((tab) => (
@@ -114,8 +94,7 @@ export const CitizenReportsListPage: React.FC = () => {
 
       {/* Reports Feed */}
       {filteredReports.length === 0 ? (
-        !error && (
-          <Card padding="lg" className="text-center py-12 space-y-3">
+        <Card padding="lg" className="text-center py-12 space-y-3">
           <div className="w-12 h-12 rounded-xl bg-surface-container-low text-secondary flex items-center justify-center mx-auto">
             <span className="material-symbols-outlined text-[28px]">search_off</span>
           </div>
@@ -126,7 +105,6 @@ export const CitizenReportsListPage: React.FC = () => {
             No hazard reports match your current filter selection.
           </p>
         </Card>
-        )
       ) : (
         <div className="space-y-3">
           {filteredReports.map((report) => (

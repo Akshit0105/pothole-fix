@@ -147,7 +147,6 @@ export interface RepairTask {
   instructions?: string;
   startedAt?: string;
   completedAt?: string;
-  approvedAt?: string;
   afterRepairPhotoUrl?: string;
   repairNotes?: string;
   reworkReason?: string;

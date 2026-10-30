@@ -1,20 +1,10 @@
 // Centralized HTTP client and API configuration for PotholeFix
 
 export const API_BASE_URL =
-  (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8000';
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-let mockModeOverride: boolean | null = null;
-export function setMockModeOverride(enabled: boolean | null): void {
-  mockModeOverride = enabled;
-}
-
-export const isMockMode = (): boolean => {
-  if (mockModeOverride !== null) return mockModeOverride;
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_USE_MOCK_DATA !== 'false';
-  }
-  return false;
-};
+export const isMockMode = (): boolean =>
+  import.meta.env.VITE_USE_MOCK_DATA !== 'false';
 
 const TOKEN_STORAGE_KEY = 'potholefix_auth_token';
 const DEFAULT_TIMEOUT_MS = 15000;

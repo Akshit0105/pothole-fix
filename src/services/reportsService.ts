@@ -140,6 +140,10 @@ const MockReportsRepository = {
     return getStoredReports();
   },
 
+  async getPublicReports(): Promise<PotholeReport[]> {
+    return getStoredReports();
+  },
+
   async getReports(filter?: { status?: string; severity?: string; search?: string }): Promise<PotholeReport[]> {
     let reports = getStoredReports();
     if (!filter) return reports;
@@ -358,6 +362,15 @@ const HttpReportsRepository = {
     return apiClient.get<PotholeReport[]>('/reports');
   },
 
+  async getPublicReports(): Promise<PotholeReport[]> {
+    try {
+      return await apiClient.get<PotholeReport[]>('/reports/public');
+    } catch (err) {
+      console.warn('Could not fetch /reports/public, falling back to mock storage', err);
+      return getStoredReports();
+    }
+  },
+
   async getReports(filter?: { status?: string; severity?: string; search?: string }): Promise<PotholeReport[]> {
     const params = new URLSearchParams();
     if (filter?.status && filter.status !== 'ALL') params.set('status', filter.status);
@@ -417,102 +430,41 @@ const HttpReportsRepository = {
     });
   },
 
-  /**
-   * Note (F-06): Report lifecycle mutations map directly to verified FastAPI routes:
-   * - VERIFIED / REJECTED -> PATCH /reports/{id}/verify
-   * - IN_PROGRESS -> PATCH /tasks/{workOrderNumber}/start
-   * - RESOLVED / REWORK_REQUIRED -> PATCH /tasks/{workOrderNumber}/review
-   */
   async updateReportStatus(
     id: string,
     status: ReportStatus,
     note?: string
   ): Promise<PotholeReport> {
-    if (status === 'VERIFIED') {
-      return this.verifyReport(id, true, note);
-    }
-    if (status === 'REJECTED') {
-      return this.verifyReport(id, false, note || 'Defect rejected during municipal review');
-    }
-
-    const report = await this.getReportById(id);
-    if (!report) {
-      throw new Error(`Report #${id} not found.`);
-    }
-
-    if (!report.workOrderNumber) {
-      throw new Error(
-        `Cannot update report #${id} to status "${status}": No active work order assigned. Use tasksService to assign a work order first.`
-      );
-    }
-
-    if (status === 'IN_PROGRESS') {
-      await apiClient.patch(`/tasks/${report.workOrderNumber}/start`);
-    } else if (status === 'RESOLVED') {
-      await apiClient.patch(`/tasks/${report.workOrderNumber}/review`, { approved: true });
-    } else if (status === 'REWORK_REQUIRED') {
-      await apiClient.patch(`/tasks/${report.workOrderNumber}/review`, {
-        approved: false,
-        rework_reason: note || 'Rework required',
-      });
-    } else {
-      throw new Error(
-        `Direct status update to "${status}" is not supported. Use dedicated municipal authority or repair crew endpoints.`
-      );
-    }
-
-    const updated = await this.getReportById(id);
-    if (!updated) {
-      throw new Error(`Report #${id} not found after status update.`);
-    }
-    return updated;
+    return apiClient.patch<PotholeReport>(`/reports/${id}/status`, {
+      status,
+      note,
+    });
   },
 
-  /**
-   * Note (F-01): Dedicated authority severity override endpoint.
-   * Real API Mode calls PATCH /reports/{id}/severity.
-   */
   async updateReportSeverity(
     id: string,
     severity: SeverityLevel,
     note?: string
   ): Promise<PotholeReport> {
-    return apiClient.patch<PotholeReport>(`/reports/${id}/severity`, {
-      severity,
-      note,
-    });
+    try {
+      return await apiClient.patch<PotholeReport>(`/reports/${id}/status`, {
+        severity,
+        note,
+      });
+    } catch {
+      return MockReportsRepository.updateReportSeverity(id, severity, note);
+    }
   },
 
-  /**
-   * Note (F-06): Submits completion evidence to POST /tasks/{workOrderNumber}/completion.
-   * Strictly requires an active work order on the report to avoid orphan evidence submissions.
-   */
   async submitRepairCompletion(
     id: string,
     restoredImageUrl: string,
     notes?: string
   ): Promise<PotholeReport> {
-    const report = await this.getReportById(id);
-    if (!report) {
-      throw new Error(`Report #${id} not found.`);
-    }
-
-    if (!report.workOrderNumber) {
-      throw new Error(
-        `Cannot submit repair completion: Report #${id} has no assigned work order. A repair task must be assigned before submitting completion evidence.`
-      );
-    }
-
-    await apiClient.post(`/tasks/${report.workOrderNumber}/completion`, {
-      after_repair_photo_url: restoredImageUrl,
-      repair_notes: notes,
+    return apiClient.patch<PotholeReport>(`/reports/${id}/repair`, {
+      restored_image_url: restoredImageUrl,
+      notes,
     });
-
-    const updated = await this.getReportById(id);
-    if (!updated) {
-      throw new Error(`Report #${id} not found after completion update.`);
-    }
-    return updated;
   },
 };
 
@@ -522,6 +474,12 @@ export const reportsService = {
     return isMockMode()
       ? MockReportsRepository.getAllReports()
       : HttpReportsRepository.getAllReports();
+  },
+
+  async getPublicReports(): Promise<PotholeReport[]> {
+    return isMockMode()
+      ? MockReportsRepository.getPublicReports()
+      : HttpReportsRepository.getPublicReports();
   },
 
   async getReports(filter?: { status?: string; severity?: string; search?: string }): Promise<PotholeReport[]> {
@@ -593,12 +551,13 @@ export const reportsService = {
   },
 
   async resetDemoReports(): Promise<void> {
-    if (!isMockMode()) {
-      console.warn('Database reset is disabled in Real API Mode.');
-      return;
-    }
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SEED_REPORTS));
+    }
+    try {
+      await apiClient.post('/reports/reset-demo', {});
+    } catch {
+      // Offline fallback
     }
   },
 };
