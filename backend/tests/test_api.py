@@ -8,7 +8,7 @@ from app.models import Report, Task, User, NotificationEvent
 
 client = TestClient(app)
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="module", autouse=True)
 def setup_db():
     Base.metadata.create_all(bind=engine)
     seed_database()

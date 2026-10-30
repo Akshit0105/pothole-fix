@@ -24,7 +24,7 @@ from ..schemas import (
     TaskEvidenceUpload,
 )
 from ..dependencies import get_current_user, require_role, require_roles
-from ..services.storage import save_uploaded_image
+from ..services.storage import save_uploaded_image, resolve_image_url, delete_uploaded_image
 from ..services.notifications import create_resolution_notification
 
 router = APIRouter(prefix="/tasks", tags=["Work Orders & Tasks"])
@@ -32,17 +32,17 @@ router = APIRouter(prefix="/tasks", tags=["Work Orders & Tasks"])
 def format_task_response(task: Task, request: Optional[Request] = None) -> TaskResponse:
     base_url = str(request.base_url).rstrip("/") if request else "http://localhost:8000"
 
-    damage_url = task.report.image_path if task.report else None
-    if damage_url and damage_url.startswith("/uploads/"):
-        damage_url = f"{base_url}{damage_url}"
+    damage_url = resolve_image_url(task.report.image_path, request) if task.report else None
+
+
 
     # Get latest evidence if uploaded
     after_url = None
     if task.evidences:
         latest_evi = sorted(task.evidences, key=lambda x: x.uploaded_at or datetime.min, reverse=True)[0]
-        after_url = latest_evi.image_path
-        if after_url and after_url.startswith("/uploads/"):
-            after_url = f"{base_url}{after_url}"
+        after_url = resolve_image_url(latest_evi.image_path, request)
+
+
 
     location_data = None
     if task.report:
@@ -233,6 +233,13 @@ def start_task(
             detail=f"Cannot start task in current status '{task.status}'."
         )
 
+    # Enforce assigned team: only members of the assigned repair team can start work
+    if current_user.team_id != task.assigned_team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Forbidden: Task is assigned to team '{task.assigned_team_id}', but your user belongs to '{current_user.team_id}'."
+        )
+
     task.status = "IN_PROGRESS"
     task.started_at = datetime.now(timezone.utc)
 
@@ -251,8 +258,17 @@ def start_task(
     )
     db.add(history)
 
-    db.commit()
-    db.refresh(task)
+    try:
+        db.commit()
+        db.refresh(task)
+    except Exception as db_err:
+        db.rollback()
+        if saved_evidence_url and (saved_evidence_url.startswith("supabase://") or saved_evidence_url.startswith("/uploads/")):
+            delete_uploaded_image(saved_evidence_url)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save repair completion evidence to database."
+        )
     return format_task_response(task, request)
 
 @router.post("/{task_id}/completion", response_model=TaskResponse)
@@ -285,12 +301,19 @@ async def submit_completion_evidence(
             detail=f"Cannot submit completion evidence for task in status '{task.status}'."
         )
 
+    # Enforce assigned team: only members of the assigned repair team can submit completion evidence
+    if current_user.team_id != task.assigned_team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Forbidden: Task is assigned to team '{task.assigned_team_id}', but your user belongs to '{current_user.team_id}'."
+        )
+
     # Save evidence image (multipart or JSON fallback)
     saved_evidence_url: str = ""
     notes: str = repair_notes or "Compacted asphalt patch flush with driving grade."
 
     if file is not None:
-        saved_evidence_url = await save_uploaded_image(file, prefix="evidence")
+        saved_evidence_url = await save_uploaded_image(file, prefix="evidence", bucket_type="repair")
     else:
         try:
             body = await request.json()

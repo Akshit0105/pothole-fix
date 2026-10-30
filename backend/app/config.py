@@ -1,6 +1,10 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+ENV_PATH = BACKEND_DIR / ".env"
 
 class Settings(BaseSettings):
     APP_NAME: str = "PotholeFix Municipal Platform"
@@ -8,8 +12,11 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = True
     
-    # SQLite Database
+    # Database Connection (Supabase PostgreSQL or fallback SQLite)
     DATABASE_URL: str = "sqlite:///./potholefix.db"
+    
+    # Demo Data Seeding (Set to True only when initial demo data seeding is needed)
+    SEED_DEMO_DATA: bool = False
     
     # JWT Security
     SECRET_KEY: str = "potholefix-hackathon-secure-jwt-secret-key-32chars-min"
@@ -17,6 +24,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
     # File Storage
+    STORAGE_BACKEND: str = "supabase" # "supabase" or "local"
+    SUPABASE_URL: str = ""
+    SUPABASE_SECRET_KEY: str = ""
+    SUPABASE_POTHOLE_BUCKET: str = "pothole-images"
+    SUPABASE_REPAIR_BUCKET: str = "repair-evidence"
+    SUPABASE_SIGNED_URL_EXPIRES_IN: int = 3600
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024 # 10 MB
     
@@ -31,6 +44,6 @@ class Settings(BaseSettings):
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=(str(ENV_PATH), ".env"), env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()

@@ -24,7 +24,8 @@ from ..schemas import (
     CreateReportJson,
 )
 from ..dependencies import get_current_user, require_role, require_roles
-from ..services.storage import save_uploaded_image
+from ..services.storage import save_uploaded_image, resolve_image_url, delete_uploaded_image
+from ..config import settings
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -32,13 +33,13 @@ def format_report_response(report: Report, request: Optional[Request] = None) ->
     base_url = str(request.base_url).rstrip("/") if request else "http://localhost:8000"
 
     # Ensure full image URLs if relative
-    damage_url = report.image_path
-    if damage_url and damage_url.startswith("/uploads/"):
-        damage_url = f"{base_url}{damage_url}"
+    damage_url = resolve_image_url(report.image_path, request)
 
-    restored_url = report.restored_image_path
-    if restored_url and restored_url.startswith("/uploads/"):
-        restored_url = f"{base_url}{restored_url}"
+
+
+    restored_url = resolve_image_url(report.restored_image_path, request)
+
+
 
     ai_data = None
     if report.ai_detection_json:
@@ -120,11 +121,22 @@ async def create_report(
     final_ai_json: Optional[str] = None
 
     if file is not None and latitude is not None and longitude is not None:
+        try:
+            final_lat = float(latitude)
+            final_lng = float(longitude)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Latitude and longitude must be valid numbers."
+            )
+        if not (-90.0 <= final_lat <= 90.0 and -180.0 <= final_lng <= 180.0):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Latitude must be between -90 and 90, longitude between -180 and 180."
+            )
         # Multipart upload
-        saved_rel_url = await save_uploaded_image(file, prefix="pothole")
+        saved_rel_url = await save_uploaded_image(file, prefix="pothole", bucket_type="pothole")
         final_image_path = saved_rel_url
-        final_lat = float(latitude)
-        final_lng = float(longitude)
         final_address = address or "Municipal Road Location"
         final_desc = description or "Road surface hazard reported by citizen."
         final_ai_json = ai_detection
@@ -182,8 +194,17 @@ async def create_report(
     )
     db.add(initial_history)
 
-    db.commit()
-    db.refresh(new_report)
+    try:
+        db.commit()
+        db.refresh(new_report)
+    except Exception as db_err:
+        db.rollback()
+        if final_image_path and (final_image_path.startswith("supabase://") or final_image_path.startswith("/uploads/")):
+            delete_uploaded_image(final_image_path)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save report to database."
+        )
 
     return format_report_response(new_report, request)
 
@@ -325,7 +346,14 @@ def verify_report(
 
 @router.post("/reset-demo")
 def reset_demo_endpoint(db: Session = Depends(get_db)):
-    """Resets the demo database to the exactly 3 seeded reports (#PF-101, #PF-102, #PF-103) in SUBMITTED state."""
+    """Resets the demo database to the exactly 3 seeded reports (#PF-101, #PF-102, #PF-103) in SUBMITTED state.
+    Strictly restricted to development mode. Real citizen reports and user accounts are never touched.
+    """
+    if (settings.ENVIRONMENT or "").lower() != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Demo reset is only permitted in development mode."
+        )
     from ..main import reset_demo_database
     reset_demo_database(db)
     return {"message": "Demo database successfully reset to the 3 seeded reports."}
