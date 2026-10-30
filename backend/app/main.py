@@ -12,11 +12,13 @@ from .models import User, Report, Task, StatusHistory, RepairEvidence
 from .security import get_password_hash
 from .routes import auth, reports, tasks, ai, authority, storage
 
-def seed_database():
-    """Seeds default hackathon accounts and the exactly 3 required Indian demo reports (#PF-101, #PF-102, #PF-103)."""
+def seed_database(overwrite: bool = False):
+    """Seeds default hackathon accounts and the exactly 3 required Indian demo reports (#PF-101, #PF-102, #PF-103) non-destructively.
+    Existing records are never deleted, and existing data is never overwritten unless explicitly requested.
+    """
     db = SessionLocal()
     try:
-        reset_demo_database(db)
+        seed_demo_data(db, overwrite=overwrite)
     finally:
         db.close()
 
@@ -77,103 +79,122 @@ def seed_demo_data(db: SessionLocal, overwrite: bool = False):
                 u.department = dept
     db.commit()
 
-    # 2. Reset database state completely to the pristine 3-report demo baseline
-    db.query(RepairEvidence).delete(synchronize_session=False)
-    db.query(StatusHistory).delete(synchronize_session=False)
-    db.query(Task).delete(synchronize_session=False)
-    db.query(Report).delete(synchronize_session=False)
+    # 2. Seed the 3 Indian Demo Reports ONLY IF MISSING (Non-destructive!)
+    demo_reports = [
+        {
+            "id": "PF-101",
+            "tracking_number": "PF-101",
+            "reporter_id": "user-citizen-01",
+            "image_path": "/photos/pothole-sector17.jpg",
+            "latitude": 30.7398,
+            "longitude": 76.7827,
+            "address": "Sector 17 Plaza Corridor, Chandigarh",
+            "description": "Deep structural asphalt crater with fractured jagged borders on Sector 17 commercial transit corridor, causing severe vehicle swerving.",
+            "severity": "CRITICAL",
+            "ai_status": "PENDING",
+            "ai_detection_json": json.dumps({
+                "isModelConnected": False,
+                "detected": True,
+                "confidence": 0.94,
+                "severityScore": "CRITICAL",
+                "boundingBoxes": []
+            }),
+            "status": "SUBMITTED",
+            "history_note": "Initial citizen report submitted with high-resolution photographic evidence.",
+            "actor_name": "Akshit Sharma",
+        },
+        {
+            "id": "PF-102",
+            "tracking_number": "PF-102",
+            "reporter_id": "user-citizen-02",
+            "image_path": "/photos/pothole-madhyamarg.jpg",
+            "latitude": 30.7290,
+            "longitude": 76.8040,
+            "address": "Madhya Marg Arterial, Sector 26, Chandigarh",
+            "description": "Significant asphalt fatigue cracking and depression across main carriageway near grain market intersection.",
+            "severity": "HIGH",
+            "ai_status": "PENDING",
+            "ai_detection_json": json.dumps({
+                "isModelConnected": False,
+                "detected": True,
+                "confidence": 0.91,
+                "severityScore": "HIGH",
+                "boundingBoxes": []
+            }),
+            "status": "SUBMITTED",
+            "history_note": "Citizen flagged high-risk road degradation on Madhya Marg transit corridor.",
+            "actor_name": "Harjot Singh",
+        },
+        {
+            "id": "PF-103",
+            "tracking_number": "PF-103",
+            "reporter_id": "user-citizen-03",
+            "image_path": "/photos/pothole-kharar.jpg",
+            "latitude": 30.7499,
+            "longitude": 76.6433,
+            "address": "National Highway 5, Kharar, Punjab",
+            "description": "Moderate asphalt road depression causing significant deceleration and commuter bicycle hazard near Kharar flyover junction.",
+            "severity": "MEDIUM",
+            "ai_status": "PENDING",
+            "ai_detection_json": json.dumps({
+                "isModelConnected": False,
+                "detected": True,
+                "confidence": 0.85,
+                "severityScore": "MODERATE",
+                "boundingBoxes": []
+            }),
+            "status": "SUBMITTED",
+            "history_note": "Citizen logged road defect near Kharar highway flyover junction.",
+            "actor_name": "Sneha Patel",
+        },
+    ]
+
+    for item in demo_reports:
+        existing = db.query(Report).filter(Report.id == item["id"]).first()
+        if not existing:
+            reporter = db.query(User).filter(User.id == item["reporter_id"]).first()
+            if not reporter:
+                reporter = db.query(User).first()
+            rep = Report(
+                id=item["id"],
+                tracking_number=item["tracking_number"],
+                reporter_id=reporter.id if reporter else item["reporter_id"],
+                image_path=item["image_path"],
+                latitude=item["latitude"],
+                longitude=item["longitude"],
+                address=item["address"],
+                description=item["description"],
+                severity=item["severity"],
+                ai_status=item["ai_status"],
+                ai_detection_json=item["ai_detection_json"],
+                status=item["status"],
+            )
+            db.add(rep)
+            db.flush()
+
+            history = StatusHistory(
+                report_id=rep.id,
+                actor_id=reporter.id if reporter else None,
+                actor_name=item["actor_name"],
+                status=item["status"],
+                note=item["history_note"],
+            )
+            db.add(history)
     db.commit()
-    db.commit()
 
-    # 3. Seed EXACTLY THREE Indian Demo Reports (all initially SUBMITTED for complete testability)
-    print("[DB] Seeding the 3 Indian demo reports (#PF-101 Sector 17, #PF-102 Madhya Marg, #PF-103 Kharar)...")
-    
-    r101 = Report(
-        id="PF-101",
-        tracking_number="PF-101",
-        reporter_id="user-citizen-01",
-        image_path="/photos/pothole-sector17.jpg",
-        latitude=30.7398,
-        longitude=76.7827,
-        address="Sector 17 Plaza Corridor, Chandigarh",
-        description="Deep structural asphalt crater with fractured jagged borders on Sector 17 commercial transit corridor, causing severe vehicle swerving.",
-        severity="CRITICAL",
-        ai_status="PENDING",
-        ai_detection_json=json.dumps({
-            "isModelConnected": False,
-            "detected": True,
-            "confidence": 0.94,
-            "severityScore": "CRITICAL",
-            "boundingBoxes": []
-        }),
-        status="SUBMITTED",
-    )
-
-    r102 = Report(
-        id="PF-102",
-        tracking_number="PF-102",
-        reporter_id="user-citizen-02",
-        image_path="/photos/pothole-madhyamarg.jpg",
-        latitude=30.7290,
-        longitude=76.8040,
-        address="Madhya Marg Arterial, Sector 26, Chandigarh",
-        description="Significant asphalt fatigue cracking and depression across main carriageway near grain market intersection.",
-        severity="HIGH",
-        ai_status="PENDING",
-        ai_detection_json=json.dumps({
-            "isModelConnected": False,
-            "detected": True,
-            "confidence": 0.91,
-            "severityScore": "HIGH",
-            "boundingBoxes": []
-        }),
-        status="SUBMITTED",
-    )
-
-    r103 = Report(
-        id="PF-103",
-        tracking_number="PF-103",
-        reporter_id="user-citizen-03",
-        image_path="/photos/pothole-kharar.jpg",
-        latitude=30.7499,
-        longitude=76.6433,
-        address="National Highway 5, Kharar, Punjab",
-        description="Moderate asphalt road depression causing significant deceleration and commuter bicycle hazard near Kharar flyover junction.",
-        severity="MEDIUM",
-        ai_status="PENDING",
-        ai_detection_json=json.dumps({
-            "isModelConnected": False,
-            "detected": True,
-            "confidence": 0.85,
-            "severityScore": "MODERATE",
-            "boundingBoxes": []
-        }),
-        status="SUBMITTED",
-    )
-
-    db.add_all([r101, r102, r103])
-    db.commit()
-
-    # Add initial StatusHistory records
-    h101 = StatusHistory(
-        report_id="PF-101",
-        actor_name="Akshit Sharma",
-        status="SUBMITTED",
-        note="Initial citizen report submitted with high-resolution photographic evidence.",
-    )
-    h102 = StatusHistory(
-        report_id="PF-102",
-        actor_name="Harjot Singh",
-        status="SUBMITTED",
-        note="Citizen flagged high-risk road degradation on Madhya Marg transit corridor.",
-    )
-    h103 = StatusHistory(
-        report_id="PF-103",
-        actor_name="Sneha Patel",
-        status="SUBMITTED",
-        note="Citizen logged road defect near Kharar highway flyover junction.",
-    )
-    db.add_all([h101, h102, h103])
+def reset_demo_database(db: SessionLocal):
+    """Explicitly resets only the 3 demo reports (#PF-101, #PF-102, #PF-103) to pristine initial state.
+    Preserves all real user accounts and real citizen reports.
+    """
+    demo_ids = ["PF-101", "PF-102", "PF-103"]
+    demo_tasks = db.query(Task).filter(Task.report_id.in_(demo_ids)).all()
+    demo_task_ids = [t.id for t in demo_tasks]
+    if demo_task_ids:
+        db.query(RepairEvidence).filter(RepairEvidence.task_id.in_(demo_task_ids)).delete(synchronize_session=False)
+        db.query(StatusHistory).filter(StatusHistory.task_id.in_(demo_task_ids)).delete(synchronize_session=False)
+        db.query(Task).filter(Task.id.in_(demo_task_ids)).delete(synchronize_session=False)
+    db.query(StatusHistory).filter(StatusHistory.report_id.in_(demo_ids)).delete(synchronize_session=False)
+    db.query(Report).filter(Report.id.in_(demo_ids)).delete(synchronize_session=False)
     db.commit()
     seed_demo_data(db, overwrite=False)
 

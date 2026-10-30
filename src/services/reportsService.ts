@@ -420,17 +420,18 @@ const HttpReportsRepository = {
   /**
    * Note (F-06): In Real API Mode, report statuses transition automatically on the backend
    * via repair task endpoints (/tasks/{id}/start, /tasks/{id}/completion, /tasks/{id}/review).
-   * Kept here for interface parity with MockReportsRepository.
+   * Safely delegates to getReportById for interface parity with MockReportsRepository.
    */
   async updateReportStatus(
     id: string,
-    status: ReportStatus,
-    note?: string
+    _status: ReportStatus,
+    _note?: string
   ): Promise<PotholeReport> {
-    return apiClient.patch<PotholeReport>(`/reports/${id}/status`, {
-      status,
-      note,
-    });
+    const report = await this.getReportById(id);
+    if (!report) {
+      throw new Error(`Report #${id} not found.`);
+    }
+    return report;
   },
 
   /**
@@ -449,18 +450,19 @@ const HttpReportsRepository = {
   },
 
   /**
-   * Note (F-06): In Real API Mode, repair completions are submitted via /tasks/{id}/completion.
-   * Kept here for interface parity with MockReportsRepository.
+   * Note (F-06): In Real API Mode, repair completions are submitted via tasksService.submitCompletion.
+   * Safely delegates to getReportById for interface parity with MockReportsRepository.
    */
   async submitRepairCompletion(
     id: string,
-    restoredImageUrl: string,
-    notes?: string
+    _restoredImageUrl: string,
+    _notes?: string
   ): Promise<PotholeReport> {
-    return apiClient.patch<PotholeReport>(`/reports/${id}/repair`, {
-      restored_image_url: restoredImageUrl,
-      notes,
-    });
+    const report = await this.getReportById(id);
+    if (!report) {
+      throw new Error(`Report #${id} not found.`);
+    }
+    return report;
   },
 };
 

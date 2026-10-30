@@ -277,11 +277,9 @@ def start_task(
         db.refresh(task)
     except Exception as db_err:
         db.rollback()
-        if saved_evidence_url and (saved_evidence_url.startswith("supabase://") or saved_evidence_url.startswith("/uploads/")):
-            delete_uploaded_image(saved_evidence_url)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to save repair completion evidence to database."
+            detail="Failed to update task status to in-progress in database."
         )
     return format_task_response(task, request)
 
@@ -371,8 +369,17 @@ async def submit_completion_evidence(
     )
     db.add(history)
 
-    db.commit()
-    db.refresh(task)
+    try:
+        db.commit()
+        db.refresh(task)
+    except Exception as db_err:
+        db.rollback()
+        if saved_evidence_url and (saved_evidence_url.startswith("supabase://") or saved_evidence_url.startswith("/uploads/")):
+            delete_uploaded_image(saved_evidence_url)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save repair completion evidence to database."
+        )
     return format_task_response(task, request)
 
 @router.patch("/{task_id}/review", response_model=ReviewTaskResponse)

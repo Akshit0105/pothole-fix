@@ -385,7 +385,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
     // Load India-Highlighted Satellite Earth (Accurate Geographic Mask & Vibrant Satellite Telemetry)
     textureLoader.load(
       '/textures/earth-india-highlighted.jpg',
-      (highlightedTexture) => {
+      (highlightedTexture: THREE.Texture) => {
         highlightedTexture.colorSpace = THREE.SRGBColorSpace;
         highlightedTexture.wrapS = THREE.RepeatWrapping;
         highlightedTexture.wrapT = THREE.ClampToEdgeWrapping;
@@ -401,7 +401,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
         console.warn('Loading base NASA Blue Marble texture fallback...');
         textureLoader.load(
           '/textures/earth-blue-marble.jpg',
-          (baseTexture) => {
+          (baseTexture: THREE.Texture) => {
             baseTexture.colorSpace = THREE.SRGBColorSpace;
             baseTexture.wrapS = THREE.RepeatWrapping;
             baseTexture.wrapT = THREE.ClampToEdgeWrapping;
@@ -412,7 +412,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
             setIsLoading(false);
           },
           undefined,
-          (err) => {
+          (err: unknown) => {
             console.warn('Could not load Earth texture assets, using procedural fallback', err);
             const fallbackTex = createFallbackProceduralTexture();
             earthMaterial.map = fallbackTex;
@@ -565,7 +565,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
       // Animate ground rings gently
       if (pinGroupRef.current) {
         const scale = 1 + 0.15 * Math.sin(pulseClock);
-        pinGroupRef.current.children.forEach((childGroup) => {
+        pinGroupRef.current.children.forEach((childGroup: THREE.Object3D) => {
           // The 4th child (index 3) is the RingMesh
           const ringMesh = childGroup.children[3];
           if (ringMesh) {
