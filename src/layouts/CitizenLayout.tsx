@@ -1,16 +1,9 @@
 import React from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { UserProfileMenu } from '../components/common/UserProfileMenu';
 
 export const CitizenLayout: React.FC = () => {
-  const { user, logout } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const navItems = [
     { label: 'Overview', path: '/citizen/dashboard', icon: 'dashboard' },
@@ -22,7 +15,7 @@ export const CitizenLayout: React.FC = () => {
     <div className="h-screen bg-background font-body-md text-on-surface flex flex-col overflow-hidden">
       {/* Citizen Workspace Top Navigation */}
       <header className="sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant/30 shadow-xs shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link to="/citizen/dashboard" className="flex items-center gap-2.5">
               <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-container text-on-primary">
@@ -63,6 +56,15 @@ export const CitizenLayout: React.FC = () => {
           {/* User profile & actions */}
           <div className="flex items-center gap-3">
             <Link
+              to="/"
+              className="hidden lg:inline-flex items-center gap-1 text-xs font-semibold text-secondary hover:text-on-surface px-2.5 py-1.5 rounded-lg hover:bg-surface-container-low transition-colors"
+              title="Return to Public Homepage"
+            >
+              <span className="material-symbols-outlined text-[16px]">home</span>
+              <span>Home</span>
+            </Link>
+
+            <Link
               to="/citizen/report"
               className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-title-md text-label-md font-medium shadow-sm transition-colors"
             >
@@ -70,25 +72,9 @@ export const CitizenLayout: React.FC = () => {
               <span>New Report</span>
             </Link>
 
-            <div className="flex items-center gap-2.5 pl-2 border-l border-surface-container-high">
-              <div className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-display-hero text-code-sm font-semibold">
-                {user?.avatarInitials || 'AS'}
-              </div>
-              <div className="hidden sm:block text-left">
-                <span className="font-title-md text-label-md font-semibold text-on-surface block leading-tight">
-                  {user?.name || 'Akshit Sharma'}
-                </span>
-                <span className="font-body-sm text-[11px] text-secondary block leading-none">
-                  Verified Civic Reporter
-                </span>
-              </div>
-              <button
-                onClick={handleLogout}
-                title="Sign Out"
-                className="w-8 h-8 rounded-lg text-secondary hover:text-error hover:bg-surface-container-low flex items-center justify-center transition-colors"
-              >
-                <span className="material-symbols-outlined text-[18px]">logout</span>
-              </button>
+            {/* Animated Profile Hover Card */}
+            <div className="pl-2 border-l border-surface-container-high">
+              <UserProfileMenu align="right" />
             </div>
           </div>
         </div>
@@ -101,20 +87,27 @@ export const CitizenLayout: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center py-1 px-3 rounded-lg text-[11px] font-title-md transition-colors ${
-                  isActive ? 'text-primary font-semibold' : 'text-secondary'
+                className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-md text-[11px] font-title-md ${
+                  isActive ? 'text-primary font-bold' : 'text-secondary'
                 }`}
               >
-                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
           })}
+          <Link
+            to="/"
+            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-md text-[11px] font-title-md text-secondary"
+          >
+            <span className="material-symbols-outlined text-[18px]">home</span>
+            <span>Home</span>
+          </Link>
         </div>
       </header>
 
-      {/* Main Body - Independent Smooth Scrolling */}
-      <main className="flex-1 overflow-y-auto max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      {/* Main Content Area - Independently Scrollable */}
+      <main className="flex-1 h-full overflow-y-auto max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-8 pb-16">
         <Outlet />
       </main>
     </div>

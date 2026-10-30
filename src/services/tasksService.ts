@@ -42,7 +42,18 @@ const MockTasksRepository = {
   },
 
   async getMyTasks(teamId?: string): Promise<RepairTask[]> {
-    return getStoredTasks().filter((t) => (teamId ? t.assignedTeamId === teamId : t.assignedTeamId === 'team-04'));
+    let targetTeamId = teamId;
+    if (!targetTeamId && typeof localStorage !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('potholefix_user');
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          targetTeamId = u.teamId || u.team_id;
+        }
+      } catch {}
+    }
+    targetTeamId = targetTeamId || 'team-04';
+    return getStoredTasks().filter((t) => t.assignedTeamId === targetTeamId);
   },
 
   async getPendingApprovals(): Promise<RepairTask[]> {
@@ -235,6 +246,12 @@ const MockTasksRepository = {
   },
 };
 
+interface ReviewTaskApiResponse {
+  task: RepairTask;
+  notificationPayload?: Record<string, unknown> | null;
+  notification_payload?: Record<string, unknown> | null;
+}
+
 // --- Real HTTP Repository (Connects to FastAPI) ---
 const HttpTasksRepository = {
   async getAllTasks(): Promise<RepairTask[]> {
@@ -306,7 +323,7 @@ const HttpTasksRepository = {
     approved: boolean,
     reworkReason?: string
   ): Promise<{ task: RepairTask; notificationPayload?: unknown }> {
-    const response = await apiClient.patch<{ task: RepairTask; notification_payload?: unknown }>(
+    const response = await apiClient.patch<ReviewTaskApiResponse>(
       `/tasks/${taskId}/review`,
       {
         approved,
@@ -315,8 +332,8 @@ const HttpTasksRepository = {
     );
 
     return {
-      task: response.task || (response as unknown as RepairTask),
-      notificationPayload: response.notification_payload,
+      task: response.task,
+      notificationPayload: response.notificationPayload ?? response.notification_payload ?? undefined,
     };
   },
 };

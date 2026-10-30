@@ -1,6 +1,50 @@
 import { apiClient, isMockMode, setAuthToken, clearAuthToken } from './apiClient';
 import type { User, UserRole, AuthResponse, LoginRequest, SignupRequest } from '../types';
 
+export interface RepairCrewOption {
+  id: string;
+  teamId: string;
+  name: string;
+  unit: string;
+  title: string;
+  department: string;
+  email: string;
+  avatarInitials: string;
+}
+
+export const REPAIR_CREWS: RepairCrewOption[] = [
+  {
+    id: 'user-team-01',
+    teamId: 'team-04',
+    name: 'Gurpreet Singh',
+    unit: 'Punjab PWD Unit 04',
+    title: 'Repair Crew Lead',
+    department: 'Punjab Public Works Department',
+    email: 'gurpreet@pwd.punjab.gov.in',
+    avatarInitials: 'GS',
+  },
+  {
+    id: 'user-team-02',
+    teamId: 'team-02',
+    name: 'Amit Verma',
+    unit: 'Chandigarh MC Road Squad 02',
+    title: 'Repair Crew Lead',
+    department: 'Municipal Corporation Chandigarh',
+    email: 'amit@mc.chandigarh.gov.in',
+    avatarInitials: 'AV',
+  },
+  {
+    id: 'user-team-03',
+    teamId: 'team-01',
+    name: 'Rajesh Sharma',
+    unit: 'Delhi Emergency Arterial Unit 01',
+    title: 'Repair Crew Lead',
+    department: 'Delhi Public Works Department',
+    email: 'rajesh@pwd.delhi.gov.in',
+    avatarInitials: 'RS',
+  },
+];
+
 export const DEMO_USERS: Record<UserRole, User> = {
   CITIZEN: {
     id: 'user-citizen-01',
@@ -25,8 +69,10 @@ export const DEMO_USERS: Record<UserRole, User> = {
     name: 'Gurpreet Singh',
     email: 'gurpreet@pwd.punjab.gov.in',
     role: 'REPAIR_TEAM',
-    title: 'Crew Lead',
-    unit: 'PWD Asphalt Unit 04',
+    title: 'Repair Crew Lead',
+    department: 'Punjab Public Works Department',
+    unit: 'Punjab PWD Unit 04',
+    teamId: 'team-04',
     avatarInitials: 'GS',
   },
 };
@@ -39,15 +85,44 @@ export const authService = {
       let chosenRole: UserRole = credentials.role || 'CITIZEN';
       const email = credentials.email.toLowerCase();
 
+      let chosenCrew = REPAIR_CREWS[0];
+
       if (!credentials.role) {
         if (email.includes('publicworks') || email.includes('gov') || email.includes('chen') || email.includes('alice')) {
           chosenRole = 'AUTHORITY';
+        } else if (email.includes('amit') || email.includes('chandigarh') || email.includes('team-02')) {
+          chosenRole = 'REPAIR_TEAM';
+          chosenCrew = REPAIR_CREWS[1];
+        } else if (email.includes('rajesh') || email.includes('delhi') || email.includes('team-01')) {
+          chosenRole = 'REPAIR_TEAM';
+          chosenCrew = REPAIR_CREWS[2];
         } else if (email.includes('asphalt') || email.includes('crew') || email.includes('unit') || email.includes('vance') || email.includes('pwd') || email.includes('gurpreet')) {
           chosenRole = 'REPAIR_TEAM';
+          chosenCrew = REPAIR_CREWS[0];
+        }
+      } else if (chosenRole === 'REPAIR_TEAM') {
+        if (email.includes('amit') || email.includes('chandigarh') || email.includes('team-02')) {
+          chosenCrew = REPAIR_CREWS[1];
+        } else if (email.includes('rajesh') || email.includes('delhi') || email.includes('team-01')) {
+          chosenCrew = REPAIR_CREWS[2];
+        } else {
+          chosenCrew = REPAIR_CREWS[0];
         }
       }
 
-      const template = DEMO_USERS[chosenRole];
+      const template = chosenRole === 'REPAIR_TEAM'
+        ? {
+            id: chosenCrew.id,
+            name: chosenCrew.name,
+            email: chosenCrew.email,
+            role: 'REPAIR_TEAM' as UserRole,
+            title: chosenCrew.title,
+            department: chosenCrew.department,
+            unit: chosenCrew.unit,
+            teamId: chosenCrew.teamId,
+            avatarInitials: chosenCrew.avatarInitials,
+          }
+        : DEMO_USERS[chosenRole];
       const user: User = {
         ...template,
         email: credentials.email,

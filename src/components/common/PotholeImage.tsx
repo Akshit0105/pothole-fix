@@ -7,6 +7,8 @@ interface PotholeImageProps {
   fallbackType?: 'critical' | 'high' | 'moderate' | 'restored' | 'default';
   allowZoom?: boolean;
   showBadge?: boolean;
+  showMissingStateIfEmpty?: boolean;
+  missingStateLabel?: string;
 }
 
 const FALLBACK_MAP: Record<string, string> = {
@@ -24,9 +26,28 @@ export const PotholeImage: React.FC<PotholeImageProps> = ({
   fallbackType = 'default',
   allowZoom = true,
   showBadge = false,
+  showMissingStateIfEmpty = false,
+  missingStateLabel,
 }) => {
   const [hasError, setHasError] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
+
+  // If explicit missing state is requested when no evidence photo exists
+  if (showMissingStateIfEmpty && (!src || src.trim() === '')) {
+    return (
+      <div className={`${className} flex flex-col items-center justify-center p-6 text-center bg-surface-container-low border border-dashed border-outline-variant/50 rounded-lg text-secondary`}>
+        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center mb-2">
+          <span className="material-symbols-outlined text-[20px]">no_photography</span>
+        </div>
+        <p className="font-semibold text-xs text-on-surface">
+          {missingStateLabel || 'Awaiting photographic evidence upload from repair crew'}
+        </p>
+        <p className="text-[11px] text-secondary mt-0.5">
+          Pending field repair execution and Level-1 post-compaction inspection
+        </p>
+      </div>
+    );
+  }
 
   // Determine correct image URL
   const fallbackSrc = FALLBACK_MAP[fallbackType] || FALLBACK_MAP.default;

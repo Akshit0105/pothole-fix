@@ -30,6 +30,7 @@ export interface User {
   title?: string;
   department?: string;
   unit?: string;
+  teamId?: string;
   avatarInitials: string;
 }
 
@@ -57,6 +58,7 @@ export interface GeoLocation {
   latitude: number;
   longitude: number;
   address: string;
+  landmark?: string;
 }
 
 export interface BoundingBox {
@@ -145,6 +147,7 @@ export interface RepairTask {
   instructions?: string;
   startedAt?: string;
   completedAt?: string;
+  approvedAt?: string;
   afterRepairPhotoUrl?: string;
   repairNotes?: string;
   reworkReason?: string;

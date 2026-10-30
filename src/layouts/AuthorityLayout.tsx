@@ -1,17 +1,10 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { UserProfileMenu } from '../components/common/UserProfileMenu';
 
 export const AuthorityLayout: React.FC = () => {
-  const { user, logout } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const navItems = [
     { label: 'Triage Overview', path: '/authority/dashboard', icon: 'dashboard' },
@@ -38,14 +31,17 @@ export const AuthorityLayout: React.FC = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-variant transition-colors"
-          aria-label="Toggle navigation menu"
-        >
-          <span className="material-symbols-outlined">{isMobileMenuOpen ? 'close' : 'menu'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <UserProfileMenu align="right" compact />
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-variant transition-colors"
+            aria-label="Toggle navigation menu"
+          >
+            <span className="material-symbols-outlined">{isMobileMenuOpen ? 'close' : 'menu'}</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Layout Container */}
@@ -70,18 +66,20 @@ export const AuthorityLayout: React.FC = () => {
           `}
         >
           {/* Header Brand */}
-          <div className="flex items-center gap-2.5 pb-6 mb-6 border-b border-surface-container-high shrink-0">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-on-primary shadow-sm">
-              <span className="material-symbols-outlined text-[18px]">account_balance</span>
-            </span>
-            <div>
-              <span className="font-display-hero text-headline-sm font-bold text-on-surface block leading-tight">
-                Public Works
+          <div className="flex items-center justify-between pb-6 mb-6 border-b border-surface-container-high shrink-0">
+            <Link to="/authority/dashboard" className="flex items-center gap-2.5">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-on-primary shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">account_balance</span>
               </span>
-              <span className="font-body-sm text-[11px] text-secondary block leading-none">
-                Triage &amp; Dispatch Desk
-              </span>
-            </div>
+              <div>
+                <span className="font-display-hero text-headline-sm font-bold text-on-surface block leading-tight">
+                  Public Works
+                </span>
+                <span className="font-body-sm text-[11px] text-secondary block leading-none">
+                  Triage &amp; Dispatch Desk
+                </span>
+              </div>
+            </Link>
           </div>
 
           {/* Navigation Links */}
@@ -104,31 +102,22 @@ export const AuthorityLayout: React.FC = () => {
                 </Link>
               );
             })}
+
+            <div className="pt-4 mt-4 border-t border-surface-container-high">
+              <Link
+                to="/"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-title-md text-label-md text-secondary hover:text-on-surface hover:bg-surface-container-low transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">home</span>
+                <span>Public Homepage</span>
+              </Link>
+            </div>
           </nav>
 
-          {/* Authority User Strip */}
+          {/* Authority User Strip with Profile Hover Card */}
           <div className="pt-4 border-t border-surface-container-high flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-display-hero text-code-sm font-semibold shrink-0">
-                {user?.avatarInitials || 'AS'}
-              </div>
-              <div className="min-w-0">
-                <span className="font-title-md text-label-md text-on-surface block truncate font-medium">
-                  {user?.name || 'Alice Sharma'}
-                </span>
-                <span className="font-body-sm text-[11px] text-secondary block truncate">
-                  Public Works Authority
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              title="Sign Out"
-              className="p-1.5 rounded-lg text-secondary hover:text-error hover:bg-surface-container-low transition-colors shrink-0"
-            >
-              <span className="material-symbols-outlined text-[20px]">logout</span>
-            </button>
+            <UserProfileMenu align="top" className="w-full" />
           </div>
         </aside>
 

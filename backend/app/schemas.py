@@ -28,6 +28,7 @@ class UserResponse(CamelModel):
     title: Optional[str] = None
     department: Optional[str] = None
     unit: Optional[str] = None
+    team_id: Optional[str] = Field(None, serialization_alias="teamId")
 
 class AuthResponse(CamelModel):
     token: str
@@ -82,6 +83,10 @@ class CreateReportJson(CamelModel):
 class VerifyReportRequest(CamelModel):
     verified: bool
     reason: Optional[str] = None
+
+class UpdateReportSeverityRequest(CamelModel):
+    severity: str
+    note: Optional[str] = None
 
 class ReportResponse(CamelModel):
     id: str

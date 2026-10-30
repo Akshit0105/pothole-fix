@@ -36,6 +36,10 @@ export const DevDemoDrawer: React.FC = () => {
   };
 
   const handleResetData = async () => {
+    if (!isMockMode()) {
+      console.warn('Demo reset is disabled in Real API Mode.');
+      return;
+    }
     await reportsService.resetDemoReports();
     window.location.reload();
   };
@@ -130,11 +134,13 @@ export const DevDemoDrawer: React.FC = () => {
           <div className="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
             <button
               type="button"
+              disabled={!isMockMode()}
               onClick={handleResetData}
-              className="text-[11px] text-secondary hover:text-error flex items-center gap-1 transition-colors"
+              title={!isMockMode() ? 'Database reset is disabled in Real API Mode' : 'Reset in-browser demo seed data'}
+              className="text-[11px] text-secondary hover:text-error flex items-center gap-1 transition-colors disabled:opacity-40 disabled:hover:text-secondary disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined text-[13px]">refresh</span>
-              <span>Reset Indian Seed Data</span>
+              <span>{isMockMode() ? 'Reset Indian Seed Data' : 'Reset Disabled in Live API Mode'}</span>
             </button>
             <span className="text-[10px] text-secondary">Ctrl+Shift+D</span>
           </div>

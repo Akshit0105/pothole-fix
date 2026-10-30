@@ -22,25 +22,34 @@ export const AuthorityReportsPage: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadReports = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await reportsService.getAllReports();
+      setReports(data);
+    } catch (err) {
+      console.error('Failed to load reports', err);
+      setError(err instanceof Error ? err.message : 'Unable to load triage queue.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadReports() {
-      try {
-        const data = await reportsService.getAllReports();
-        setReports(data);
-      } catch (err) {
-        console.error('Failed to load reports', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     loadReports();
   }, []);
 
   // Filter and prioritize: Critical & High first by default (Phase 7)
   const filteredAndSortedReports = reports
     .filter((r) => {
-      if (statusFilter !== 'ALL' && r.status !== statusFilter) return false;
+      if (statusFilter === 'ALL') {
+        if (r.status === 'RESOLVED') return false; // Strictly exclude resolved from active triage queue
+      } else if (r.status !== statusFilter) {
+        return false;
+      }
       if (severityFilter !== 'ALL') {
         const score = r.aiDetection?.severityScore;
         if (severityFilter === 'MODERATE' && (score === 'MODERATE' || score === 'MEDIUM')) {
@@ -109,6 +118,21 @@ export const AuthorityReportsPage: React.FC = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="p-4 rounded-xl bg-error-container text-on-error-container flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-error/20">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[24px] text-error shrink-0">error</span>
+            <div>
+              <p className="font-semibold text-sm">Failed to load triage queue</p>
+              <p className="text-xs opacity-90">{error}</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadReports}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Filter & Search Bar */}
       <Card padding="md" className="space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -134,7 +158,7 @@ export const AuthorityReportsPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 rounded-lg bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none"
             >
-              <option value="ALL">All Statuses ({reports.length})</option>
+              <option value="ALL">All Active Hazards (Excl. Closed)</option>
               <option value="SUBMITTED">Submitted</option>
               <option value="VERIFIED">Verified</option>
               <option value="ASSIGNED">Assigned</option>
@@ -184,7 +208,8 @@ export const AuthorityReportsPage: React.FC = () => {
 
       {/* Reports List */}
       {filteredAndSortedReports.length === 0 ? (
-        <Card padding="lg" className="text-center py-12 space-y-2">
+        !error && (
+          <Card padding="lg" className="text-center py-12 space-y-2">
           <span className="material-symbols-outlined text-[36px] text-secondary mx-auto block">
             search_off
           </span>
@@ -193,6 +218,7 @@ export const AuthorityReportsPage: React.FC = () => {
             Adjust your search query or severity filter to display records.
           </p>
         </Card>
+        )
       ) : (
         <div className="space-y-3">
           {filteredAndSortedReports.map((report) => {

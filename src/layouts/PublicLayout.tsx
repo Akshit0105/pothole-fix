@@ -1,10 +1,12 @@
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { UserProfileMenu } from '../components/common/UserProfileMenu';
 
 export const PublicLayout: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const getDashboardLink = () => {
     if (!user) return '/login';
@@ -13,13 +15,22 @@ export const PublicLayout: React.FC = () => {
     return '/citizen/dashboard';
   };
 
+  const handleReportClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated || !user) {
+      navigate('/login?role=CITIZEN&redirect=/citizen/report');
+    } else {
+      navigate('/citizen/report');
+    }
+  };
+
   const isHome = location.pathname === '/';
 
   return (
     <div className="min-h-screen bg-background font-body-md text-on-surface flex flex-col selection:bg-primary/20 selection:text-primary">
       {/* Main Public Navbar */}
       <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-outline-variant/30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-primary-container text-on-primary shadow-sm group-hover:bg-primary transition-colors">
               <span className="material-symbols-outlined text-[20px]">alt_route</span>
@@ -44,14 +55,14 @@ export const PublicLayout: React.FC = () => {
                 <a href="#mission" className="font-title-md text-label-md text-secondary hover:text-on-surface transition-colors">
                   Mission
                 </a>
-                <a href="#vision" className="font-title-md text-label-md text-secondary hover:text-on-surface transition-colors">
-                  Vision
-                </a>
                 <a href="#features" className="font-title-md text-label-md text-secondary hover:text-on-surface transition-colors">
                   Platform
                 </a>
                 <a href="#how-it-works" className="font-title-md text-label-md text-secondary hover:text-on-surface transition-colors">
                   How It Works
+                </a>
+                <a href="#impact" className="font-title-md text-label-md text-secondary hover:text-on-surface transition-colors">
+                  Impact Globe
                 </a>
               </>
             ) : (
@@ -76,39 +87,33 @@ export const PublicLayout: React.FC = () => {
           {/* Action CTAs */}
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <>
+              <div className="flex items-center gap-2.5">
                 <Link
                   to={getDashboardLink()}
-                  className="px-4 py-2 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-title-md text-body-md font-medium shadow-sm transition-all flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-title-md text-label-md font-medium shadow-sm transition-all flex items-center gap-1.5"
                 >
                   <span>Enter Workspace</span>
                   <span className="material-symbols-outlined text-[16px]">east</span>
                 </Link>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="px-3 py-2 text-xs font-semibold text-secondary hover:text-error hover:bg-surface-variant rounded-lg transition-colors"
-                  title="Sign Out"
-                >
-                  Sign Out
-                </button>
-              </>
+                <UserProfileMenu align="right" />
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
                   to="/login"
                   className="px-3.5 py-1.5 rounded-lg border border-outline-variant/40 hover:bg-surface-container-low text-on-surface font-title-md text-label-md transition-colors"
                 >
                   Sign In
                 </Link>
-                <Link
-                  to="/citizen/report"
-                  className="px-4 py-2 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-title-md text-label-md font-medium shadow-sm transition-colors flex items-center gap-1.5"
+                <button
+                  type="button"
+                  onClick={handleReportClick}
+                  className="px-4 py-2 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-title-md text-label-md font-medium shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
                   <span>Report Pothole</span>
-                </Link>
-              </>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -119,86 +124,21 @@ export const PublicLayout: React.FC = () => {
         <Outlet />
       </main>
 
-      {/* Public Footer (Phase 12: Professional Compact Footer) */}
-      <footer className="bg-surface-container-low border-t border-outline-variant/30 py-12 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Brand Col */}
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2.5 mb-3">
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-container text-on-primary shadow-xs">
-                <span className="material-symbols-outlined text-[17px]">alt_route</span>
-              </span>
-              <span className="font-display-hero text-headline-sm font-bold text-on-surface">
-                PotholeFix
-              </span>
-            </div>
-            <p className="font-body-md text-secondary text-sm max-w-md mb-4">
-              AI-powered road hazard detection, citizen reporting, and municipal triage dispatch platform. Built to empower urban local bodies and citizens with accountable, rapid repair workflows.
-            </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container border border-outline-variant/40 text-xs text-secondary">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Pilot Deployment: Chandigarh Tricity &amp; Delhi Arterials</span>
-            </div>
-          </div>
-
-          {/* Quick Nav */}
-          <div>
-            <h4 className="font-title-md text-sm font-bold text-on-surface mb-3 uppercase tracking-wider">
-              Platform
-            </h4>
-            <ul className="space-y-2 text-sm text-secondary">
-              <li>
-                <Link to="/citizen/report" className="hover:text-primary transition-colors">
-                  Citizen Hazard Reporting
-                </Link>
-              </li>
-              <li>
-                <Link to="/login" className="hover:text-primary transition-colors">
-                  Municipal Authority Portal
-                </Link>
-              </li>
-              <li>
-                <Link to="/login" className="hover:text-primary transition-colors">
-                  Field Repair Crew Workspace
-                </Link>
-              </li>
-              <li>
-                <Link to="/resolution-preview" className="hover:text-primary transition-colors">
-                  Citizen Resolution Notifications
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Governance & Transparency */}
-          <div>
-            <h4 className="font-title-md text-sm font-bold text-on-surface mb-3 uppercase tracking-wider">
-              Governance
-            </h4>
-            <ul className="space-y-2 text-sm text-secondary">
-              <li>
-                <span className="text-secondary">MC Chandigarh Public Works</span>
-              </li>
-              <li>
-                <span className="text-secondary">Punjab PWD Highway Cell</span>
-              </li>
-              <li>
-                <span className="text-secondary">Open Road Safety Standards</span>
-              </li>
-              <li>
-                <span className="text-secondary">Privacy &amp; Data Security</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="max-w-7xl mx-auto pt-6 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-secondary">
-          <p>© 2026 PotholeFix. Smarter Roads. Safer Journeys. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span>ISO 9001 Road Audit Compliant</span>
+      {/* Modern Compact Civic Footer */}
+      <footer className="border-t border-outline-variant/30 bg-surface-container-lowest/80 text-secondary text-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-on-surface">PotholeFix Civic Infrastructure Network</span>
             <span>·</span>
-            <span>Precision GIS Enabled</span>
+            <span>Municipal Corporation Chandigarh &amp; Punjab PWD</span>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <a href="#how-it-works" className="hover:text-primary transition-colors">Lifecycle Audit</a>
+            <a href="#impact" className="hover:text-primary transition-colors">3D Impact Map</a>
+            <Link to="/resolution-preview" className="hover:text-primary transition-colors">Resolution Dispatch</Link>
+            <Link to="/login" className="hover:text-primary transition-colors">Municipal Sign-In</Link>
           </div>
         </div>
       </footer>

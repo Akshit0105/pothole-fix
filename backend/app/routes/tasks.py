@@ -174,7 +174,9 @@ def list_all_tasks(
     Lists work orders for management or filtered by crew.
     """
     query = db.query(Task)
-    if assigned_team_id:
+    if current_user.role == "REPAIR_TEAM":
+        query = query.filter(Task.assigned_team_id == current_user.team_id)
+    elif assigned_team_id:
         query = query.filter(Task.assigned_team_id == assigned_team_id)
     if status_filter and status_filter != "ALL":
         query = query.filter(Task.status == status_filter)
@@ -203,6 +205,12 @@ def get_task_detail(
             detail=f"Work Order #{task_id} not found."
         )
 
+    if current_user.role == "REPAIR_TEAM" and task.assigned_team_id != current_user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You do not have authorization to view tasks assigned to another repair crew."
+        )
+
     return format_task_response(task, request)
 
 @router.patch("/{task_id}/start", response_model=TaskResponse)
@@ -225,6 +233,12 @@ def start_task(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Work Order #{task_id} not found."
+        )
+
+    if current_user.role == "REPAIR_TEAM" and task.assigned_team_id != current_user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You do not have authorization to start tasks assigned to another repair crew."
         )
 
     if task.status not in ["PENDING", "REWORK_REQUIRED"]:
