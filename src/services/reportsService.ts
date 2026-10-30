@@ -418,20 +418,54 @@ const HttpReportsRepository = {
   },
 
   /**
-   * Note (F-06): In Real API Mode, report statuses transition automatically on the backend
-   * via repair task endpoints (/tasks/{id}/start, /tasks/{id}/completion, /tasks/{id}/review).
-   * Safely delegates to getReportById for interface parity with MockReportsRepository.
+   * Note (F-06): Report lifecycle mutations map directly to verified FastAPI routes:
+   * - VERIFIED / REJECTED -> PATCH /reports/{id}/verify
+   * - IN_PROGRESS -> PATCH /tasks/{workOrderNumber}/start
+   * - RESOLVED / REWORK_REQUIRED -> PATCH /tasks/{workOrderNumber}/review
    */
   async updateReportStatus(
     id: string,
-    _status: ReportStatus,
-    _note?: string
+    status: ReportStatus,
+    note?: string
   ): Promise<PotholeReport> {
+    if (status === 'VERIFIED') {
+      return this.verifyReport(id, true, note);
+    }
+    if (status === 'REJECTED') {
+      return this.verifyReport(id, false, note || 'Defect rejected during municipal review');
+    }
+
     const report = await this.getReportById(id);
     if (!report) {
       throw new Error(`Report #${id} not found.`);
     }
-    return report;
+
+    if (!report.workOrderNumber) {
+      throw new Error(
+        `Cannot update report #${id} to status "${status}": No active work order assigned. Use tasksService to assign a work order first.`
+      );
+    }
+
+    if (status === 'IN_PROGRESS') {
+      await apiClient.patch(`/tasks/${report.workOrderNumber}/start`);
+    } else if (status === 'RESOLVED') {
+      await apiClient.patch(`/tasks/${report.workOrderNumber}/review`, { approved: true });
+    } else if (status === 'REWORK_REQUIRED') {
+      await apiClient.patch(`/tasks/${report.workOrderNumber}/review`, {
+        approved: false,
+        rework_reason: note || 'Rework required',
+      });
+    } else {
+      throw new Error(
+        `Direct status update to "${status}" is not supported. Use dedicated municipal authority or repair crew endpoints.`
+      );
+    }
+
+    const updated = await this.getReportById(id);
+    if (!updated) {
+      throw new Error(`Report #${id} not found after status update.`);
+    }
+    return updated;
   },
 
   /**
@@ -450,19 +484,35 @@ const HttpReportsRepository = {
   },
 
   /**
-   * Note (F-06): In Real API Mode, repair completions are submitted via tasksService.submitCompletion.
-   * Safely delegates to getReportById for interface parity with MockReportsRepository.
+   * Note (F-06): Submits completion evidence to POST /tasks/{workOrderNumber}/completion.
+   * Strictly requires an active work order on the report to avoid orphan evidence submissions.
    */
   async submitRepairCompletion(
     id: string,
-    _restoredImageUrl: string,
-    _notes?: string
+    restoredImageUrl: string,
+    notes?: string
   ): Promise<PotholeReport> {
     const report = await this.getReportById(id);
     if (!report) {
       throw new Error(`Report #${id} not found.`);
     }
-    return report;
+
+    if (!report.workOrderNumber) {
+      throw new Error(
+        `Cannot submit repair completion: Report #${id} has no assigned work order. A repair task must be assigned before submitting completion evidence.`
+      );
+    }
+
+    await apiClient.post(`/tasks/${report.workOrderNumber}/completion`, {
+      after_repair_photo_url: restoredImageUrl,
+      repair_notes: notes,
+    });
+
+    const updated = await this.getReportById(id);
+    if (!updated) {
+      throw new Error(`Report #${id} not found after completion update.`);
+    }
+    return updated;
   },
 };
 
