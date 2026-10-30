@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #f9faf8;
+    color: #191c1b;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+/* Material Symbols Outlined default styling */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Hairline border helper matching DESIGN.md */
+.border-hairline {
+  border-color: #e4e7e5;
+}
+
+/* Leaflet container full size reset */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  z-index: 10;
+}

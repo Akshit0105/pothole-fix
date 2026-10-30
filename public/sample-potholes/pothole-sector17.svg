@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <radialGradient id="potholeDepth" cx="48%" cy="52%" r="55%">
+      <stop offset="0%" stop-color="#0a0c0e" />
+      <stop offset="40%" stop-color="#14171a" />
+      <stop offset="75%" stop-color="#2a3036" />
+      <stop offset="100%" stop-color="#4a525a" />
+    </radialGradient>
+    <linearGradient id="roadSurface" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#474d54" />
+      <stop offset="50%" stop-color="#3b4147" />
+      <stop offset="100%" stop-color="#2c3136" />
+    </linearGradient>
+    <filter id="craterShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="6" stdDeviation="6" flood-color="#050607" flood-opacity="0.9" />
+    </filter>
+  </defs>
+
+  <!-- Asphalt Road Base -->
+  <rect width="800" height="600" fill="url(#roadSurface)" />
+
+  <!-- Road Texture Specks -->
+  <g fill="#5c646d" opacity="0.4">
+    <circle cx="120" cy="80" r="2" />
+    <circle cx="340" cy="140" r="1.5" />
+    <circle cx="680" cy="90" r="2.5" />
+    <circle cx="210" cy="480" r="1.8" />
+    <circle cx="590" cy="420" r="2.2" />
+    <circle cx="720" cy="510" r="1.5" />
+    <circle cx="90" cy="310" r="2" />
+  </g>
+  <g fill="#1a1c1e" opacity="0.3">
+    <circle cx="180" cy="120" r="3" />
+    <circle cx="280" cy="220" r="2" />
+    <circle cx="510" cy="180" r="2.5" />
+    <circle cx="640" cy="340" r="3" />
+    <circle cx="380" cy="540" r="2" />
+  </g>
+
+  <!-- Painted Road Marking (Faded White Lane Divider) -->
+  <rect x="30" y="270" width="160" height="36" rx="4" fill="#d8dede" opacity="0.75" />
+  <rect x="610" y="270" width="160" height="36" rx="4" fill="#d8dede" opacity="0.75" />
+
+  <!-- Radiating Stress Cracks around Pothole -->
+  <path d="M 280,240 Q 250,210 210,200 M 230,205 Q 190,195 170,160" stroke="#1d2226" stroke-width="3" fill="none" stroke-linecap="round" />
+  <path d="M 520,240 Q 560,200 610,190 M 580,195 Q 640,180 670,150" stroke="#1d2226" stroke-width="3.5" fill="none" stroke-linecap="round" />
+  <path d="M 310,380 Q 260,430 220,470 M 250,440 Q 210,480 180,520" stroke="#1d2226" stroke-width="3" fill="none" stroke-linecap="round" />
+  <path d="M 490,380 Q 540,430 590,470 M 550,440 Q 600,480 630,510" stroke="#1d2226" stroke-width="3" fill="none" stroke-linecap="round" />
+  <path d="M 400,190 Q 395,140 410,90" stroke="#1d2226" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  <path d="M 400,420 Q 405,480 395,540" stroke="#1d2226" stroke-width="2.5" fill="none" stroke-linecap="round" />
+
+  <!-- Deep Jagged Pothole Cavity -->
+  <path d="M 270,270 
+           Q 285,225 340,210 
+           Q 400,195 460,205 
+           Q 525,215 540,260 
+           Q 555,305 530,350 
+           Q 505,395 450,410 
+           Q 380,420 320,400 
+           Q 260,375 255,320 
+           Z" 
+        fill="url(#potholeDepth)" 
+        stroke="#1a1e22" 
+        stroke-width="5" 
+        filter="url(#craterShadow)" />
+
+  <!-- Fractured Inner Ledge / Exposed Sub-base Aggregate -->
+  <path d="M 290,285 
+           Q 310,245 360,230 
+           Q 420,225 460,235 
+           Q 505,250 515,285 
+           Q 510,325 480,355 
+           Q 440,380 380,385 
+           Q 330,375 305,340 
+           Z" 
+        fill="#101214" />
+
+  <!-- Loose Gravel & Sub-base Rocks Inside Crater -->
+  <ellipse cx="380" cy="310" rx="22" ry="14" fill="#32383e" />
+  <ellipse cx="440" cy="330" rx="18" ry="11" fill="#24282c" />
+  <ellipse cx="330" cy="325" rx="15" ry="9" fill="#2d3237" />
+  <ellipse cx="420" cy="280" rx="14" ry="10" fill="#3a4148" />
+
+  <!-- Sharp fractured rim highlights -->
+  <path d="M 285,240 Q 350,212 430,215" stroke="#68727d" stroke-width="2" fill="none" opacity="0.6" />
+  <path d="M 260,320 Q 285,380 350,405" stroke="#111416" stroke-width="4" fill="none" opacity="0.8" />
+
+  <!-- Location Tag Overlay -->
+  <g transform="translate(24, 24)">
+    <rect width="270" height="42" rx="8" fill="#001f24" fill-opacity="0.85" stroke="#004f57" stroke-width="1.5" />
+    <circle cx="20" cy="21" r="7" fill="#ba1a1a" />
+    <text x="36" y="26" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff">Sector 17 Plaza Corridor, CHD</text>
+  </g>
+  <g transform="translate(620, 24)">
+    <rect width="156" height="34" rx="6" fill="#ba1a1a" fill-opacity="0.9" />
+    <text x="78" y="22" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">CRITICAL HAZARD</text>
+  </g>
+</svg>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_blank" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary-fixed":"#95f1ff","primary-container":"#087f8c","inverse-surface":"#2e3130","on-tertiary-container":"#f5faff","secondary-fixed-dim":"#bdc8cf","outline":"#6e797b","primary":"#00646f","tertiary-fixed-dim":"#b7c9d5","inverse-on-surface":"#f0f1ef","inverse-primary":"#79d4e2","on-secondary-fixed-variant":"#3e484e","surface-dim":"#d9dad8","on-secondary":"#ffffff","secondary-container":"#d9e4eb","secondary":"#556066","surface-bright":"#f9faf8","on-surface-variant":"#3e494a","tertiary":"#4c5c66","surface-container-lowest":"#ffffff","on-tertiary-fixed-variant":"#384953","tertiary-fixed":"#d3e5f1","on-primary-fixed":"#001f24","primary-fixed-dim":"#79d4e2","on-secondary-fixed":"#131d22","error":"#ba1a1a","on-tertiary":"#ffffff","background":"#f9faf8","on-surface":"#191c1b","outline-variant":"#bdc9ca","surface-tint":"#006874","error-container":"#ffdad6","secondary-fixed":"#d9e4eb","on-primary-fixed-variant":"#004f57","surface-container-high":"#e7e8e6","surface-container-highest":"#e1e3e1","on-primary":"#ffffff","on-error":"#ffffff","surface-container-low":"#f3f4f2","on-background":"#191c1b","on-tertiary-fixed":"#0c1e26","surface-container":"#edeeec","on-error-container":"#93000a","tertiary-container":"#64757f","surface":"#f9faf8","on-primary-container":"#effdff","on-secondary-container":"#5b666c","surface-variant":"#e1e3e1"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-xl":"2.25rem","margin-mobile":"1rem","gutter-mobile":"0.75rem","space-xs":"0.25rem","space-lg":"1.5rem","margin-desktop":"3rem","gutter-desktop":"1.75rem","space-sm":"0.5rem",margin:"2rem",gutter:"1.25rem","space-md":"1rem"},fontFamily:{"body-md":["Inter"],"display-hero":["Space Grotesk"],"display-hero-mobile":["Space Grotesk"],"body-lg":["Inter"],"headline-lg-mobile":["Space Grotesk"],"body-sm":["Inter"],"headline-sm":["Space Grotesk"],"code-sm":["Space Grotesk"],"headline-md":["Space Grotesk"],"label-sm":["Inter"],"headline-lg":["Space Grotesk"],"title-md":["Inter"],"label-md":["Inter"]},fontSize:{"body-md":["14px",{lineHeight:"22px",letterSpacing:"-0.005em",fontWeight:"400"}],"display-hero":["56px",{lineHeight:"64px",letterSpacing:"-0.04em",fontWeight:"600"}],"display-hero-mobile":["38px",{lineHeight:"44px",letterSpacing:"-0.03em",fontWeight:"600"}],"body-lg":["16px",{lineHeight:"26px",letterSpacing:"-0.01em",fontWeight:"400"}],"headline-lg-mobile":["28px",{lineHeight:"36px",letterSpacing:"-0.025em",fontWeight:"600"}],"body-sm":["12px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["22px",{lineHeight:"30px",letterSpacing:"-0.02em",fontWeight:"500"}],"code-sm":["12px",{lineHeight:"16px",letterSpacing:"-0.01em",fontWeight:"500"}],"headline-md":["28px",{lineHeight:"36px",letterSpacing:"-0.025em",fontWeight:"500"}],"label-sm":["11px",{lineHeight:"14px",letterSpacing:"0.04em",fontWeight:"600"}],"headline-lg":["40px",{lineHeight:"48px",letterSpacing:"-0.035em",fontWeight:"600"}],"title-md":["17px",{lineHeight:"24px",letterSpacing:"-0.015em",fontWeight:"600"}],"label-md":["13px",{lineHeight:"18px",letterSpacing:"-0.005em",fontWeight:"500"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4"><main class="w-full max-w-md mx-auto"><div class="flex flex-col w-full py-4 sm:py-6">
+<!-- Interactive View State Toggle & Breadcrumb Top Bar -->
+<div class="flex items-center justify-between mb-5 px-1">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-container text-on-primary font-headline-sm text-headline-sm">
+<span class="material-symbols-outlined text-[17px]">alt_route</span>
+</span>
+<div>
+<p class="font-display-hero text-label-sm tracking-widest uppercase text-primary">PotholeFix Infrastructure</p>
+<p class="font-body-sm text-body-sm text-secondary">Municipal Access Control &amp; Triage Engine</p>
+</div>
+</div>
+<div class="flex items-center bg-surface-container rounded-lg p-0.5 shadow-sm">
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded-md bg-surface text-primary font-semibold shadow-sm transition-all flex items-center gap-1.5" id="viewAuthBtn" onclick="switchView('auth')">
+<span class="material-symbols-outlined text-[15px]">lock</span> Auth Card
+      </button>
+<button class="px-2.5 py-1 text-label-sm font-label-sm rounded-md text-secondary hover:text-on-surface transition-all flex items-center gap-1.5" id="viewEmailBtn" onclick="switchView('email')">
+<span class="material-symbols-outlined text-[15px]">mail</span> Resolution Email
+      </button>
+</div>
+</div>
+<!-- Main Container: Dual Mode or Side-by-Side Flex -->
+<div class="w-full">
+<!-- 1. AUTHENTICATION & ACCESS PORTAL CARD -->
+<div class="w-full bg-surface-container-lowest rounded-xl shadow-md p-5 sm:p-6 transition-all duration-300" id="authSection">
+<!-- Brand & Header -->
+<div class="flex items-start justify-between mb-5">
+<div>
+<div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-low text-primary text-label-sm font-label-sm mb-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+            GovCloud Civic Identity v2.4
+          </div>
+<h1 class="font-display-hero text-headline-sm text-on-surface">PotholeFix Portal</h1>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Secure, cryptographic RBAC for municipal road maintenance.</p>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[24px]">verified_user</span>
+</div>
+</div>
+<!-- Authentication Tabs -->
+<div class="grid grid-cols-2 gap-1 bg-surface-container-low p-1 rounded-lg mb-5">
+<button class="py-1.5 text-center text-label-md font-label-md rounded-md bg-surface-container-lowest text-on-surface shadow-sm transition-all" id="tabSignIn" onclick="setAuthTab('signin')">
+          Sign In
+        </button>
+<button class="py-1.5 text-center text-label-md font-label-md rounded-md text-secondary hover:text-on-surface transition-all" id="tabRegister" onclick="setAuthTab('register')">
+          Register Citizen Account
+        </button>
+</div>
+<!-- Quick Demo Role Switcher for Hackathon Judges -->
+<div class="bg-surface-container-low rounded-lg p-3.5 mb-5">
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary-container">hub</span>
+<span class="font-headline-sm text-label-sm tracking-wider uppercase text-on-surface font-semibold">Judge Fast-Switch</span>
+</div>
+<span class="text-label-sm font-label-sm bg-primary-fixed text-on-primary-fixed px-1.5 py-0.5 rounded font-medium">Bypass Active</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<!-- Citizen Role Button -->
+<button class="group text-left p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-bright transition-all shadow-sm flex items-center justify-between" onclick="populateDemoUser('citizen')" type="button">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-display-hero text-code-sm">
+                AR
+              </div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-on-surface font-semibold truncate">Alex Rivera</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] uppercase font-semibold bg-surface-container text-secondary">Citizen</span>
+</div>
+<p class="font-body-sm text-[11px] text-secondary truncate">Directs to /citizen/dashboard</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[16px] text-secondary group-hover:text-primary transition-colors">east</span>
+</button>
+<!-- Municipal Authority Role Button -->
+<button class="group text-left p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-bright transition-all shadow-sm flex items-center justify-between" onclick="populateDemoUser('authority')" type="button">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-display-hero text-code-sm">
+                SC
+              </div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-on-surface font-semibold truncate">Director Sarah Chen</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] uppercase font-semibold bg-primary-fixed-dim/40 text-primary">Authority</span>
+</div>
+<p class="font-body-sm text-[11px] text-secondary truncate">Dept of Public Works · /authority/dashboard</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[16px] text-secondary group-hover:text-primary transition-colors">east</span>
+</button>
+<!-- Repair Crew Lead Role Button -->
+<button class="group text-left p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-bright transition-all shadow-sm flex items-center justify-between" onclick="populateDemoUser('crew')" type="button">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-display-hero text-code-sm">
+                MV
+              </div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-on-surface font-semibold truncate">Marcus Vance</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] uppercase font-semibold bg-tertiary-container/30 text-tertiary">Crew Lead</span>
+</div>
+<p class="font-body-sm text-[11px] text-secondary truncate">Asphalt Unit 04 · /team/dashboard</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[16px] text-secondary group-hover:text-primary transition-colors">east</span>
+</button>
+</div>
+<div class="mt-2.5 flex items-start gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[14px] mt-0.5 text-primary">shield</span>
+<p class="font-body-sm text-[11px] leading-tight text-on-surface-variant">
+            RBAC enforced by backend token verification. Role permissions strictly separated.
+          </p>
+</div>
+</div>
+<!-- Realistic Login Form -->
+<form class="space-y-3.5" id="loginForm" onsubmit="event.preventDefault(); simulateLogin();">
+<div>
+<label class="block font-title-md text-label-md text-on-surface mb-1" for="workEmail">Work or Community Email</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+</span>
+<input class="w-full pl-9 pr-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-secondary/60 focus:outline-none focus:bg-surface-container-lowest shadow-sm transition-all" id="workEmail" placeholder="alex.rivera@community.org" required="" type="email" value="alex.rivera@community.org"/>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-1">
+<label class="block font-title-md text-label-md text-on-surface" for="password">Password</label>
+<a class="font-body-sm text-body-sm text-primary hover:underline" href="#">Forgot passcode?</a>
+</div>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary">
+<span class="material-symbols-outlined text-[18px]">key</span>
+</span>
+<input class="w-full pl-9 pr-3 py-2.5 rounded-lg bg-surface-container-low text-on-surface font-body-md text-body-md placeholder:text-secondary/60 focus:outline-none focus:bg-surface-container-lowest shadow-sm transition-all" id="password" placeholder="Enter secure key" required="" type="password" value="••••••••••••"/>
+</div>
+</div>
+<div class="flex items-center justify-between pt-0.5">
+<label class="flex items-center gap-2 cursor-pointer select-none">
+<input checked="" class="w-4 h-4 rounded bg-surface-container text-primary-container focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-secondary">Remember session</span>
+</label>
+<span class="font-code-sm text-code-sm text-secondary">SHA-256 Auth</span>
+</div>
+<!-- Submit Button -->
+<button class="w-full py-2.5 px-4 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-title-md text-body-md font-medium shadow-md transition-all flex items-center justify-center gap-2 mt-2" id="submitBtn" type="submit">
+<span class="hidden material-symbols-outlined text-[18px] animate-spin" id="btnSpinner">progress_activity</span>
+<span id="btnText">Sign In to Triage Portal</span>
+<span class="material-symbols-outlined text-[18px]">login</span>
+</button>
+</form>
+<!-- Feedback Banner (Simulated Redirect Alert) -->
+<div class="hidden mt-3 p-2.5 rounded-lg bg-primary-fixed text-on-primary-fixed font-body-sm text-body-sm flex items-center gap-2" id="loginFeedback">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+<span id="feedbackText">Session authenticated. Redirecting...</span>
+</div>
+<div class="mt-4 pt-3 border-t-0 bg-surface-container-low rounded-lg p-2.5 flex items-center justify-between">
+<span class="font-body-sm text-[11px] text-secondary">Need inspection dispatch?</span>
+<button class="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-0.5" onclick="switchView('email')" type="button">
+          Preview Email Dispatch <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- 2. AUTOMATED EMAIL RESOLUTION NOTIFICATION MODAL / CARD -->
+<div class="w-full bg-surface-container-lowest rounded-xl shadow-md p-5 sm:p-6 transition-all duration-300" id="emailSection">
+<!-- Civic Email Header Strip -->
+<div class="flex items-center justify-between mb-4 pb-3 bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-display-hero text-code-sm uppercase tracking-wider text-on-surface font-semibold">Civic Notification Dispatch</span>
+</div>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-primary-fixed text-on-primary-fixed font-medium">Verified by AI + Authority</span>
+</div>
+<!-- Email Envelope Meta -->
+<div class="space-y-1 mb-4">
+<div class="flex flex-wrap items-baseline gap-1.5">
+<span class="font-headline-sm text-label-sm uppercase text-secondary font-semibold">Subject:</span>
+<h2 class="font-display-hero text-body-lg text-on-surface font-semibold">Your PotholeFix Report Has Been Resolved (#PF-098)</h2>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between text-body-sm font-body-sm text-secondary pt-1">
+<div class="truncate">
+<span class="text-on-surface-variant font-medium">From:</span> notifications@potholefix.org
+          </div>
+<div class="truncate">
+<span class="text-on-surface-variant font-medium">To:</span> alex.rivera@community.org
+          </div>
+</div>
+</div>
+<!-- Email Body Card -->
+<div class="bg-surface-container-lowest rounded-lg mb-4 space-y-3">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+          Hello <span class="font-semibold text-primary">Alex</span>,
+        </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          The pothole you reported at <span class="font-medium text-on-surface">Bay St &amp; Richmond St</span> has been successfully repaired and verified by the Municipal Authority Inspector. Thank you for flagging this civic hazard.
+        </p>
+<!-- Report Summary Box -->
+<div class="bg-surface-container-low rounded-lg p-3 my-3">
+<div class="flex items-center justify-between mb-2">
+<span class="font-headline-sm text-label-sm uppercase tracking-wider text-secondary font-semibold">Inspection Summary</span>
+<span class="font-code-sm text-code-sm text-primary-container font-medium">GIS REF: 43.6532° N, 79.3832° W</span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-body-sm font-body-sm">
+<div class="bg-surface-container-lowest p-2 rounded">
+<span class="text-[11px] text-secondary block">Report ID</span>
+<span class="font-semibold text-on-surface font-display-hero">PF-098</span>
+</div>
+<div class="bg-surface-container-lowest p-2 rounded">
+<span class="text-[11px] text-secondary block">Location</span>
+<span class="font-semibold text-on-surface truncate block">Bay St &amp; Richmond St</span>
+</div>
+<div class="bg-surface-container-lowest p-2 rounded">
+<span class="text-[11px] text-secondary block">Verified Timestamp</span>
+<span class="font-semibold text-on-surface">Today 14:20 EST</span>
+</div>
+<div class="bg-surface-container-lowest p-2 rounded">
+<span class="text-[11px] text-secondary block">Repair Unit</span>
+<span class="font-semibold text-primary font-medium">Asphalt Unit 04</span>
+</div>
+</div>
+</div>
+<!-- Before & After Photographic Comparison -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-headline-sm text-label-sm uppercase tracking-wider text-secondary font-semibold">Photographic Triage Evidence</span>
+<span class="text-[11px] font-code-sm text-secondary">Ground Depth Δ: -4.8cm</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Damage State -->
+<div class="relative rounded-lg overflow-hidden bg-surface-container shadow-sm group">
+<img class="w-full h-24 sm:h-28 object-cover" data-alt="High contrast street level close up of a severe deep asphalt pothole with fractured edges and gravel debris on urban Bay Street, warm directional afternoon sunlight, raw documentary camera capture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCIW8ftzctdJrABe8_CqrkaxQWxcI5ZC6QFQY4r8TtHHL3Ajan4vbxad_3bZfEu6Bk-muCYAYq1R8ichZdh6GAh9ZK-yc6IH3kMS3owhBOCUIS5O9XkB194LzMHIvQFnREt9_uU_gASw3Vugj-0XJ0iGb48e5xUVgWTIqRBdIOViEtLQgfxwFQSOHy6jamNVfES02Mk4sPb2NfQgfvzKQM4wndDqS3BNGTbEuD4lE7"/>
+<div class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[10px] uppercase font-semibold flex items-center gap-1">
+<span class="w-1 h-1 rounded-full bg-white"></span> Damaged
+              </div>
+<div class="p-1.5 bg-surface-container-lowest">
+<p class="font-code-sm text-[10px] text-secondary truncate">Depth: 7.2cm · Class A Hazard</p>
+</div>
+</div>
+<!-- Restored State -->
+<div class="relative rounded-lg overflow-hidden bg-surface-container shadow-sm group">
+<img class="w-full h-24 sm:h-28 object-cover" data-alt="Close up photograph of freshly compacted smooth dark asphalt road patch on Bay Street, clean steam-rolled surface with no cracks, precision municipal road work under daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzIQ3o3oa8D0RMavyYRFWkos4g1VxY83QSU1WGFZ4qoJwuZ-ZGKxacii9DLHkdu5wduLaUByONFbPb27f3lamLmgETuwHcjuFXpXKcboh-vSYq7l91OAs7hK8bacyDa3pWlLt6o9oG4kZ1fxTKD3UGLFyko8EwtLf0TqtOqW6XqDazY_6GZFQ8UtAjsAWvTEyVQPlMU7SGgGSp7lkAe3Xf9lEPZCFeXO8GBCkZAvH1"/>
+<div class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-primary-container text-on-primary font-label-sm text-[10px] uppercase font-semibold flex items-center gap-1">
+<span class="w-1 h-1 rounded-full bg-primary-fixed"></span> Restored
+              </div>
+<div class="p-1.5 bg-surface-container-lowest">
+<p class="font-code-sm text-[10px] text-primary truncate">100% Flush · Level-1 Pass</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Portal Resolution CTA -->
+<div class="pt-2">
+<button class="w-full py-2.5 px-4 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-title-md text-body-md font-medium shadow-md transition-all flex items-center justify-center gap-2" onclick="alert('Navigating to Public Audit Record #PF-098: Municipal Inspection Confirmed.');" type="button">
+<span>View Full Resolution Audit in Portal</span>
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+<!-- Email Footer -->
+<div class="mt-4 pt-3 text-center bg-surface-container-low rounded-lg p-2.5">
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">
+            Thank you for helping keep our city roads safe.
+          </p>
+<p class="font-body-sm text-[11px] text-secondary mt-0.5">
+            PotholeFix Civic Department · Automated Work Order #WO-88421
+          </p>
+</div>
+</div>
+<!-- Action to return to Login -->
+<div class="mt-2 text-center">
+<button class="font-label-sm text-label-sm text-secondary hover:text-primary transition-colors flex items-center justify-center gap-1 mx-auto" onclick="switchView('auth')" type="button">
+<span class="material-symbols-outlined text-[15px]">arrow_back</span> Back to Identity Sign-In
+        </button>
+</div>
+</div>
+</div>
+</div>
+<script>
+  let targetRedirect = '/citizen/dashboard';
+
+  function switchView(view) {
+    const authSec = document.getElementById('authSection');
+    const emailSec = document.getElementById('emailSection');
+    const authBtn = document.getElementById('viewAuthBtn');
+    const emailBtn = document.getElementById('viewEmailBtn');
+
+    if (view === 'auth') {
+      authSec.classList.remove('hidden');
+      emailSec.classList.add('hidden');
+      authBtn.className = 'px-2.5 py-1 text-label-sm font-label-sm rounded-md bg-surface text-primary font-semibold shadow-sm transition-all flex items-center gap-1.5';
+      emailBtn.className = 'px-2.5 py-1 text-label-sm font-label-sm rounded-md text-secondary hover:text-on-surface transition-all flex items-center gap-1.5';
+    } else {
+      authSec.classList.add('hidden');
+      emailSec.classList.remove('hidden');
+      emailBtn.className = 'px-2.5 py-1 text-label-sm font-label-sm rounded-md bg-surface text-primary font-semibold shadow-sm transition-all flex items-center gap-1.5';
+      authBtn.className = 'px-2.5 py-1 text-label-sm font-label-sm rounded-md text-secondary hover:text-on-surface transition-all flex items-center gap-1.5';
+    }
+  }
+
+  function setAuthTab(tab) {
+    const signInBtn = document.getElementById('tabSignIn');
+    const regBtn = document.getElementById('tabRegister');
+    const emailInput = document.getElementById('workEmail');
+    const btnText = document.getElementById('btnText');
+
+    if (tab === 'signin') {
+      signInBtn.className = 'py-1.5 text-center text-label-md font-label-md rounded-md bg-surface-container-lowest text-on-surface shadow-sm transition-all';
+      regBtn.className = 'py-1.5 text-center text-label-md font-label-md rounded-md text-secondary hover:text-on-surface transition-all';
+      btnText.innerText = 'Sign In to Triage Portal';
+      emailInput.placeholder = 'alex.rivera@community.org';
+    } else {
+      regBtn.className = 'py-1.5 text-center text-label-md font-label-md rounded-md bg-surface-container-lowest text-on-surface shadow-sm transition-all';
+      signInBtn.className = 'py-1.5 text-center text-label-md font-label-md rounded-md text-secondary hover:text-on-surface transition-all';
+      btnText.innerText = 'Register Public Account';
+      emailInput.placeholder = 'your.name@citizen.org';
+    }
+  }
+
+  function populateDemoUser(role) {
+    const email = document.getElementById('workEmail');
+    const feedback = document.getElementById('loginFeedback');
+    feedback.classList.add('hidden');
+
+    if (role === 'citizen') {
+      email.value = 'alex.rivera@community.org';
+      targetRedirect = '/citizen/dashboard';
+    } else if (role === 'authority') {
+      email.value = 's.chen@publicworks.gov';
+      targetRedirect = '/authority/dashboard';
+    } else if (role === 'crew') {
+      email.value = 'm.vance@asphalt-unit04.city';
+      targetRedirect = '/team/dashboard';
+    }
+
+    // Visual pulse effect on email input
+    email.classList.add('bg-primary-fixed');
+    setTimeout(() => {
+      email.classList.remove('bg-primary-fixed');
+    }, 350);
+  }
+
+  function simulateLogin() {
+    const spinner = document.getElementById('btnSpinner');
+    const btn = document.getElementById('submitBtn');
+    const feedback = document.getElementById('loginFeedback');
+    const feedbackText = document.getElementById('feedbackText');
+
+    spinner.classList.remove('hidden');
+    btn.disabled = true;
+
+    setTimeout(() => {
+      spinner.classList.add('hidden');
+      btn.disabled = false;
+      feedbackText.innerText = 'Authenticated! Redirecting judge to ' + targetRedirect;
+      feedback.classList.remove('hidden');
+    }, 700);
+  }
+
+  // Initialize display: Auth is default
+  document.addEventListener('DOMContentLoaded', () => {
+    switchView('auth');
+  });
+</script></main></body></html>

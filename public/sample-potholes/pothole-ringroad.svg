@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <radialGradient id="potholeDepthRR" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#050608" />
+      <stop offset="65%" stop-color="#14181c" />
+      <stop offset="100%" stop-color="#343c44" />
+    </radialGradient>
+    <linearGradient id="roadSurfaceRR" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3a4047" />
+      <stop offset="100%" stop-color="#24282c" />
+    </linearGradient>
+    <filter id="shadowRR">
+      <feDropShadow dx="4" dy="7" stdDeviation="6" flood-color="#000000" flood-opacity="0.95" />
+    </filter>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#roadSurfaceRR)" />
+
+  <!-- White solid highway border lane -->
+  <line x1="80" y1="0" x2="80" y2="600" stroke="#f1f5f9" stroke-width="12" opacity="0.85" />
+
+  <!-- Huge rim-bending highway pothole -->
+  <path d="M 310,230 
+           Q 380,180 470,195 
+           Q 560,210 590,280 
+           Q 620,360 560,430 
+           Q 480,470 390,450 
+           Q 300,430 280,350 
+           Q 270,290 310,230 Z" 
+        fill="url(#potholeDepthRR)" 
+        stroke="#121416" 
+        stroke-width="6" 
+        filter="url(#shadowRR)" />
+
+  <!-- Very deep sub-stratum center -->
+  <ellipse cx="440" cy="330" rx="90" ry="65" fill="#040405" />
+
+  <!-- Extreme jagged fractures cutting into driving line -->
+  <path d="M 280,350 Q 200,380 120,400" stroke="#121416" stroke-width="4.5" fill="none" />
+  <path d="M 310,230 Q 240,190 170,160" stroke="#121416" stroke-width="4" fill="none" />
+  <path d="M 590,280 Q 670,260 740,240" stroke="#121416" stroke-width="4" fill="none" />
+  <path d="M 560,430 Q 640,480 710,520" stroke="#121416" stroke-width="4" fill="none" />
+
+  <!-- Chipped concrete aggregate and water puddle reflection -->
+  <ellipse cx="430" cy="340" rx="45" ry="25" fill="#1b2832" opacity="0.75" />
+  <circle cx="380" cy="310" r="14" fill="#3c454e" />
+  <circle cx="490" cy="350" r="12" fill="#2c333a" />
+
+  <!-- Location Tag Overlay -->
+  <g transform="translate(24, 24)">
+    <rect width="290" height="42" rx="8" fill="#001f24" fill-opacity="0.85" stroke="#004f57" stroke-width="1.5" />
+    <circle cx="20" cy="21" r="7" fill="#ba1a1a" />
+    <text x="36" y="26" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff">Ring Road AIIMS Flyover, Delhi</text>
+  </g>
+  <g transform="translate(620, 24)">
+    <rect width="156" height="34" rx="6" fill="#ba1a1a" fill-opacity="0.9" />
+    <text x="78" y="22" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">CRITICAL HAZARD</text>
+  </g>
+</svg>

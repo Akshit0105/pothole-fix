@@ -1,0 +1,12 @@
+# PotholeFix YOLO Dataset Configuration Template
+# Update 'path' to the root directory of your dataset (absolute or relative)
+path: ../dataset # Dataset root directory
+
+# Relative paths from 'path'
+train: images/train # Training images
+val: images/val     # Validation images
+test: images/test   # Optional test images
+
+# Class Mapping
+names:
+  0: pothole
