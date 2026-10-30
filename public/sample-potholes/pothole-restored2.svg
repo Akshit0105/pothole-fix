@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="roadSurfacePatch2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d4349" />
+      <stop offset="50%" stop-color="#33383e" />
+      <stop offset="100%" stop-color="#282c31" />
+    </linearGradient>
+    <linearGradient id="freshPatch2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14171a" />
+      <stop offset="100%" stop-color="#191c20" />
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#roadSurfacePatch2)" />
+
+  <!-- Road markings: Continuous yellow arterial divider -->
+  <line x1="0" y1="300" x2="800" y2="300" stroke="#f59e0b" stroke-width="8" stroke-dasharray="40 30" opacity="0.9" />
+
+  <!-- Longitude Saw-cut Patch Box with Tack-coat Seal -->
+  <rect x="200" y="230" width="400" height="210" rx="8" fill="none" stroke="#0d0e10" stroke-width="6" />
+  <rect x="205" y="235" width="390" height="200" rx="6" fill="url(#freshPatch2)" />
+
+  <!-- Level Pass Compactor lines -->
+  <g stroke="#262b30" stroke-width="2.5" opacity="0.5">
+    <line x1="205" y1="270" x2="595" y2="270" />
+    <line x1="205" y1="310" x2="595" y2="310" />
+    <line x1="205" y1="350" x2="595" y2="350" />
+    <line x1="205" y1="390" x2="595" y2="390" />
+  </g>
+
+  <!-- Restored Yellow Line Segment Over Fresh Asphalt -->
+  <line x1="205" y1="300" x2="595" y2="300" stroke="#f59e0b" stroke-width="8" stroke-dasharray="40 30" opacity="0.95" />
+
+  <!-- Location Tag Overlay -->
+  <g transform="translate(24, 24)">
+    <rect width="290" height="42" rx="8" fill="#001f24" fill-opacity="0.85" stroke="#004f57" stroke-width="1.5" />
+    <circle cx="20" cy="21" r="7" fill="#10b981" />
+    <text x="36" y="26" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff">Madhya Marg Resurfaced, CHD</text>
+  </g>
+  <g transform="translate(600, 24)">
+    <rect width="176" height="34" rx="6" fill="#059669" fill-opacity="0.9" />
+    <text x="88" y="22" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">WORK COMPLETED</text>
+  </g>
+</svg>
