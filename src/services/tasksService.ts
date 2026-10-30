@@ -246,6 +246,12 @@ const MockTasksRepository = {
   },
 };
 
+interface ReviewTaskApiResponse {
+  task: RepairTask;
+  notificationPayload?: Record<string, unknown> | null;
+  notification_payload?: Record<string, unknown> | null;
+}
+
 // --- Real HTTP Repository (Connects to FastAPI) ---
 const HttpTasksRepository = {
   async getAllTasks(): Promise<RepairTask[]> {
@@ -317,7 +323,7 @@ const HttpTasksRepository = {
     approved: boolean,
     reworkReason?: string
   ): Promise<{ task: RepairTask; notificationPayload?: unknown }> {
-    const response = await apiClient.patch<{ task: RepairTask; notification_payload?: unknown }>(
+    const response = await apiClient.patch<ReviewTaskApiResponse>(
       `/tasks/${taskId}/review`,
       {
         approved,
@@ -326,8 +332,8 @@ const HttpTasksRepository = {
     );
 
     return {
-      task: response.task || (response as unknown as RepairTask),
-      notificationPayload: response.notification_payload,
+      task: response.task,
+      notificationPayload: response.notificationPayload ?? response.notification_payload ?? undefined,
     };
   },
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { reportsService } from '../../services/reportsService';
+import { ApiError } from '../../services/apiClient';
 import type { PotholeReport, SeverityLevel } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/common/Card';
@@ -32,6 +33,7 @@ export const AuthorityReportDetailPage: React.FC = () => {
 
   const loadReport = async () => {
     if (!id) return;
+    setActionErrorMsg(null);
     try {
       const data = await reportsService.getReportById(id);
       if (data) {
@@ -39,10 +41,16 @@ export const AuthorityReportDetailPage: React.FC = () => {
         if (data.aiDetection?.severityScore) {
           setOverrideSeverity(data.aiDetection.severityScore);
         }
+      } else {
+        setReport(null);
       }
     } catch (err) {
       console.error('Failed to load report detail', err);
-      setActionErrorMsg(err instanceof Error ? err.message : 'Failed to fetch report from server.');
+      if (err instanceof ApiError && err.status === 404) {
+        setReport(null);
+      } else {
+        setActionErrorMsg(err instanceof Error ? err.message : 'Failed to fetch report from server.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -54,6 +62,8 @@ export const AuthorityReportDetailPage: React.FC = () => {
 
   const handleVerify = async () => {
     if (!report) return;
+    setActionErrorMsg(null);
+    setActionSuccessMsg(null);
     try {
       const updated = await reportsService.verifyReport(report.id, true, undefined, user?.name);
       setReport(updated);
@@ -61,20 +71,30 @@ export const AuthorityReportDetailPage: React.FC = () => {
       setTimeout(() => setActionSuccessMsg(null), 4000);
     } catch (err) {
       console.error('Verification failed', err);
+      setActionErrorMsg(err instanceof Error ? err.message : 'Report verification failed.');
     }
   };
 
   const handleReject = async (reason: string) => {
     if (!report) return;
-    const updated = await reportsService.verifyReport(report.id, false, reason, user?.name);
-    setReport(updated);
-    setActionSuccessMsg(`Report marked as REJECTED: "${reason}"`);
-    setTimeout(() => setActionSuccessMsg(null), 4000);
+    setActionErrorMsg(null);
+    setActionSuccessMsg(null);
+    try {
+      const updated = await reportsService.verifyReport(report.id, false, reason, user?.name);
+      setReport(updated);
+      setActionSuccessMsg(`Report marked as REJECTED: "${reason}"`);
+      setTimeout(() => setActionSuccessMsg(null), 4000);
+    } catch (err) {
+      console.error('Rejection failed', err);
+      setActionErrorMsg(err instanceof Error ? err.message : 'Report rejection failed.');
+    }
   };
 
   const handleSaveSeverityOverride = async () => {
     if (!report) return;
     setIsUpdatingSeverity(true);
+    setActionErrorMsg(null);
+    setActionSuccessMsg(null);
     try {
       const note = severityReason.trim()
         ? `Authority manual override: ${severityReason}`
@@ -92,7 +112,7 @@ export const AuthorityReportDetailPage: React.FC = () => {
       setTimeout(() => setActionSuccessMsg(null), 4000);
     } catch (err) {
       console.error('Failed to update severity', err);
-      setActionErrorMsg('Failed to update severity.');
+      setActionErrorMsg(err instanceof Error ? err.message : 'Failed to update severity.');
     } finally {
       setIsUpdatingSeverity(false);
     }
@@ -100,6 +120,50 @@ export const AuthorityReportDetailPage: React.FC = () => {
 
   if (isLoading) {
     return <LoadingState message="Loading report triage record..." />;
+  }
+
+  if (actionErrorMsg && !report) {
+    return (
+      <Card padding="lg" className="text-center py-12 space-y-3 max-w-xl mx-auto border-error/30">
+        <div className="w-12 h-12 rounded-full bg-error-container text-on-error-container flex items-center justify-center mx-auto mb-2">
+          <span className="material-symbols-outlined text-[24px]">cloud_off</span>
+        </div>
+        <h2 className="font-display-hero text-headline-sm text-on-surface">Unable to Load Report</h2>
+        <p className="font-body-sm text-secondary">{actionErrorMsg}</p>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button variant="primary" size="md" onClick={() => { setIsLoading(true); loadReport(); }}>
+            Retry
+          </Button>
+          <Link to="/authority/reports">
+            <Button variant="secondary" size="md">
+              Return to Triage Queue
+            </Button>
+          </Link>
+        </div>
+      </Card>
+    );
+  }
+
+  if (actionErrorMsg && !report) {
+    return (
+      <Card padding="lg" className="text-center py-12 space-y-3 max-w-xl mx-auto border-error/30">
+        <div className="w-12 h-12 rounded-full bg-error-container text-on-error-container flex items-center justify-center mx-auto mb-2">
+          <span className="material-symbols-outlined text-[24px]">cloud_off</span>
+        </div>
+        <h2 className="font-display-hero text-headline-sm text-on-surface">Unable to Load Report</h2>
+        <p className="font-body-sm text-secondary">{actionErrorMsg}</p>
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button variant="primary" size="md" onClick={() => { setIsLoading(true); loadReport(); }}>
+            Retry
+          </Button>
+          <Link to="/authority/reports">
+            <Button variant="secondary" size="md">
+              Return to Triage Queue
+            </Button>
+          </Link>
+        </div>
+      </Card>
+    );
   }
 
   if (!report) {
