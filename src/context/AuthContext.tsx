@@ -22,21 +22,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     // In mock mode, initialize with cached user or default to Akshit Sharma
-    if (isMockMode()) {
+    if (true) {
       const saved = localStorage.getItem('potholefix_user');
       if (saved) {
         try {
           return JSON.parse(saved);
         } catch {
-          return DEMO_USERS.CITIZEN;
+          if (isMockMode()) return DEMO_USERS.CITIZEN;
         }
       }
-      return DEMO_USERS.CITIZEN;
+      if (isMockMode()) return DEMO_USERS.CITIZEN;
     }
     return null;
   });
 
-  const [isLoading, setIsLoading] = useState<boolean>(!isMockMode());
+  const [isLoading, setIsLoading] = useState<boolean>(() => !isMockMode() && !localStorage.getItem('potholefix_user'));
   const isDemo = isMockMode();
 
   // Listen for 401 Unauthorized events from apiClient

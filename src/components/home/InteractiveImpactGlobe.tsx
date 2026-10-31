@@ -12,6 +12,7 @@ export interface GlobePinData {
   lat: number;
   lng: number;
   title: string;
+  roadName?: string;
   locationName: string;
   completedCount: number;
   completedDate: string;
@@ -60,6 +61,24 @@ const REGIONAL_SHOWCASE_PINS: GlobePinData[] = [
     afterPhotoUrl: '/photos/pothole-restored1.jpg',
     notes: 'Saw-cut square excavation and hot-mix compaction completed with Level-1 municipal pass.',
     status: 'ASSIGNED',
+    severity: 'CRITICAL',
+  },
+  {
+    id: 'DEMO-CHD-999',
+    reportId: 'PF-999',
+    trackingNumber: 'PF-999',
+    lat: 30.7414,
+    lng: 76.7921,
+    title: 'Sector 17 Plaza West Wing',
+    locationName: 'Sector 17 Commercial Corridor, Chandigarh',
+    completedCount: 22,
+    completedDate: 'Certified Pass',
+    inspectorName: 'Alice Sharma (Commissioner)',
+    isRealDatabaseRecord: false,
+    beforePhotoUrl: '/photos/pothole-sector17.jpg',
+    afterPhotoUrl: '/photos/pothole-restored1.jpg',
+    notes: 'Level-1 certified flush asphalt restoration completed under Larsen & Toubro CSR sponsorship.',
+    status: 'RESOLVED',
     severity: 'CRITICAL',
   },
   {
@@ -590,28 +609,37 @@ export const InteractiveImpactGlobe: React.FC = () => {
     pinGroupRef.current = pinGroup;
     buildPinAndClusterMeshes(globeRadius);
 
-    // Atmospheric rim
-    const atmosphereGeometry = new THREE.SphereGeometry(globeRadius * 1.018, 32, 32);
-    const atmosphereMaterial = new THREE.MeshBasicMaterial({
-      color: 0x90caf9,
+    // Atmospheric double rim
+    const innerAtmosphereGeom = new THREE.SphereGeometry(globeRadius * 1.015, 48, 48);
+    const innerAtmosphereMat = new THREE.MeshBasicMaterial({
+      color: 0x60a5fa,
       transparent: true,
-      opacity: 0.028,
+      opacity: 0.045,
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending,
     });
-    const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
-    scene.add(atmosphereMesh);
+    scene.add(new THREE.Mesh(innerAtmosphereGeom, innerAtmosphereMat));
 
-    // Space Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.48);
+    const outerAtmosphereGeom = new THREE.SphereGeometry(globeRadius * 1.032, 32, 32);
+    const outerAtmosphereMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.022,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+    });
+    scene.add(new THREE.Mesh(outerAtmosphereGeom, outerAtmosphereMat));
+
+    // Refined Space Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xfffbf5, 2.0);
-    sunLight.position.set(2, 3, 6);
+    const sunLight = new THREE.DirectionalLight(0xfffbf2, 2.2);
+    sunLight.position.set(2.5, 3.2, 5.5);
     scene.add(sunLight);
 
-    const starFillLight = new THREE.DirectionalLight(0x78909c, 0.15);
-    starFillLight.position.set(-6, -2, -4);
+    const starFillLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+    starFillLight.position.set(-5, -2, -4);
     scene.add(starFillLight);
 
     // Drag & Zoom Controls
@@ -623,6 +651,10 @@ export const InteractiveImpactGlobe: React.FC = () => {
       setIsInteracting(true);
       renderer.domElement.style.cursor = 'grabbing';
       previousMousePosition = { x: e.clientX, y: e.clientY };
+      cancelCloseTimer();
+      setHoveredClusterId(null);
+      setHoveredDetailReport(null);
+      setHoveredPinId(null);
     };
 
     const onPointerDrag = (e: PointerEvent) => {
@@ -671,6 +703,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
       animationFrameId = requestAnimationFrame(animate);
       pulseClock += 0.035;
 
+      // Pulse animation for marker rings
       if (pinGroupRef.current) {
         const scale = 1 + 0.15 * Math.sin(pulseClock);
         pinGroupRef.current.children.forEach((childGroup) => {
@@ -681,15 +714,9 @@ export const InteractiveImpactGlobe: React.FC = () => {
         });
       }
 
-      const shouldRotate =
-        !isRotationPausedRef.current &&
-        !isDraggingRef.current &&
-        !isZoomAnimatingRef.current;
-
-      if (shouldRotate && earthMeshRef.current) {
-        earthMeshRef.current.rotation.y += 0.0009;
-        updateProjectedPositions();
-      }
+      // Earth is STATIONARY by default (Fix 1).
+      // Manual drag rotates the Earth; clicking "Locate Precise Location" executes zoom.
+      // Hovering over clusters/markers or popups NEVER triggers rotation.
 
       renderer.render(scene, camera);
     };
@@ -723,8 +750,10 @@ export const InteractiveImpactGlobe: React.FC = () => {
       }
       earthGeometry.dispose();
       earthMaterial.dispose();
-      atmosphereGeometry.dispose();
-      atmosphereMaterial.dispose();
+      innerAtmosphereGeom.dispose();
+      innerAtmosphereMat.dispose();
+      outerAtmosphereGeom.dispose();
+      outerAtmosphereMat.dispose();
       renderer.dispose();
     };
   }, []); // Run ONCE on mount
@@ -823,48 +852,57 @@ export const InteractiveImpactGlobe: React.FC = () => {
     }
   }, [updateProjectedPositions]);
 
-  // Anti-flicker hover helpers for two-level progressive disclosure
-  const handleMouseEnterCluster = (id: string, defaultPin?: GlobePinData) => {
+  // Anti-flicker hover helpers for two-level progressive disclosure (Fix 2)
+  const cancelCloseTimer = () => {
     if (hoverLeaveTimerRef.current) {
       clearTimeout(hoverLeaveTimerRef.current);
       hoverLeaveTimerRef.current = null;
     }
+  };
+
+  const scheduleCloseTimer = () => {
+    cancelCloseTimer();
+    hoverLeaveTimerRef.current = setTimeout(() => {
+      setHoveredClusterId(null);
+      setHoveredDetailReport(null);
+      setHoveredPinId(null);
+    }, 260); // 200–300 ms as required by Fix 2
+  };
+
+  const handleMouseEnterCluster = (id: string, defaultPin?: GlobePinData) => {
+    if (isDraggingRef.current || isZoomAnimatingRef.current) return;
+    cancelCloseTimer();
     setHoveredClusterId(id);
     setHoveredPinId(null);
     if (defaultPin) {
       setHoveredDetailReport(defaultPin);
+    } else {
+      const clusterPoint = projectedPoints.find((p) => p.isCluster && p.clusterData?.id === id);
+      if (clusterPoint?.clusterData?.pins?.[0]) {
+        setHoveredDetailReport(clusterPoint.clusterData.pins[0]);
+      }
     }
   };
 
   const handleMouseLeaveCluster = () => {
-    if (hoverLeaveTimerRef.current) {
-      clearTimeout(hoverLeaveTimerRef.current);
-    }
-    hoverLeaveTimerRef.current = setTimeout(() => {
-      setHoveredClusterId(null);
-      setHoveredDetailReport(null);
-    }, 350);
+    scheduleCloseTimer();
   };
 
   const handleMouseEnterPin = (id: string) => {
-    if (hoverLeaveTimerRef.current) {
-      clearTimeout(hoverLeaveTimerRef.current);
-      hoverLeaveTimerRef.current = null;
-    }
+    if (isDraggingRef.current || isZoomAnimatingRef.current) return;
+    cancelCloseTimer();
     setHoveredPinId(id);
     setHoveredClusterId(null);
     setHoveredDetailReport(null);
   };
 
   const handleMouseLeavePin = () => {
-    if (hoverLeaveTimerRef.current) {
-      clearTimeout(hoverLeaveTimerRef.current);
-    }
-    hoverLeaveTimerRef.current = setTimeout(() => {
-      setHoveredPinId(null);
-      setHoveredDetailReport(null);
-    }, 350);
+    scheduleCloseTimer();
   };
+
+  useEffect(() => {
+    return () => cancelCloseTimer();
+  }, []);
 
   return (
     <div className="relative w-full rounded-3xl bg-gradient-to-b from-surface-container-lowest via-surface-container-low/50 to-surface-container-lowest border border-outline-variant/30 overflow-hidden shadow-xl p-4 sm:p-6 lg:p-8">
@@ -926,7 +964,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
         {/* DETAILED STREET MAP VIEW (Phase 6 - 10) */}
         {viewMode === 'ROAD_MAP' && (
           <DetailedStreetMap
-            key={`detailed-map-${selectedPin?.id || 'default'}-${selectedPin?.lat}-${selectedPin?.lng}`}
+            key="potholefix-detailed-street-map"
             initialReport={selectedPin}
             allReports={displayedPins}
             onBackToGlobe={handleBackToGlobe}
@@ -1020,7 +1058,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
                             left: `${point.x}px`,
                             top: `${point.y}px`,
                             transform: 'translate(-50%, -50%)',
-                            zIndex: isHovered ? 60 : 30,
+                            zIndex: isHovered ? 60 : 45,
                           }}
                           onMouseEnter={() => handleMouseEnterCluster(cluster.id)}
                           onMouseLeave={handleMouseLeaveCluster}
@@ -1090,7 +1128,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
                             left: `${point.x}px`,
                             top: `${point.y}px`,
                             transform: 'translate(-50%, -50%)',
-                            zIndex: isHovered ? 60 : 25,
+                            zIndex: isHovered ? 60 : 45,
                           }}
                           onMouseEnter={() => handleMouseEnterPin(pin.id)}
                           onMouseLeave={handleMouseLeavePin}
@@ -1156,37 +1194,53 @@ export const InteractiveImpactGlobe: React.FC = () => {
                           ? hoveredDetailReport
                           : cluster.pins[0];
 
+                      // Safe Hover Bridge geometry: bridges narrow physical gap between cluster pin and popups without blocking other markers
+                      const isPopupRight = clampLeft >= activeClusterPoint.x;
+                      const bridgeLeft = isPopupRight ? activeClusterPoint.x - 12 : clampLeft + totalPopupWidth - 12;
+                      const bridgeRight = isPopupRight ? clampLeft + 16 : activeClusterPoint.x + 12;
+                      const bridgeWidth = Math.max(12, bridgeRight - bridgeLeft);
+                      const bridgeTop = Math.min(activeClusterPoint.y - 18, clampTop);
+                      const bridgeBottom = Math.max(activeClusterPoint.y + 18, clampTop + 36);
+                      const bridgeHeight = Math.max(20, bridgeBottom - bridgeTop);
+
                       return (
-                        <div
-                          className="absolute pointer-events-auto z-50 flex flex-col sm:flex-row items-start gap-3"
-                          style={{
-                            left: `${clampLeft}px`,
-                            top: `${clampTop}px`,
-                            maxHeight: `${maxPopupHeight}px`,
-                          }}
-                          onMouseEnter={() => {
-                            if (hoverLeaveTimerRef.current) {
-                              clearTimeout(hoverLeaveTimerRef.current);
-                              hoverLeaveTimerRef.current = null;
-                            }
-                          }}
-                          onMouseLeave={handleMouseLeaveCluster}
-                        >
-                          {/* LEVEL 1: COMPACT CLUSTER REPORT LIST */}
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.96 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.96 }}
-                            transition={{ duration: 0.16, ease: 'easeOut' }}
-                            className="w-72 sm:w-76 max-h-[480px] sm:max-h-[500px] flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 text-left shrink-0 overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
-                            onMouseEnter={() => {
-                              if (hoverLeaveTimerRef.current) {
-                                clearTimeout(hoverLeaveTimerRef.current);
-                                hoverLeaveTimerRef.current = null;
-                              }
+                        <div key={cluster.id} className="contents">
+                          {/* Invisible hover bridge covering only the interaction gap between marker and popup */}
+                          <div
+                            className="absolute pointer-events-auto z-35 bg-transparent"
+                            style={{
+                              left: `${bridgeLeft}px`,
+                              top: `${bridgeTop}px`,
+                              width: `${bridgeWidth}px`,
+                              height: `${bridgeHeight}px`,
                             }}
+                            onMouseEnter={cancelCloseTimer}
+                            onMouseLeave={scheduleCloseTimer}
+                            onPointerDown={(e) => e.stopPropagation()}
+                          />
+
+                          <div
+                            className="absolute pointer-events-auto z-50 flex flex-col sm:flex-row items-start gap-3"
+                            style={{
+                              left: `${clampLeft}px`,
+                              top: `${clampTop}px`,
+                              maxHeight: `${maxPopupHeight}px`,
+                            }}
+                            onMouseEnter={cancelCloseTimer}
+                            onMouseLeave={scheduleCloseTimer}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
                           >
+                            {/* LEVEL 1: COMPACT CLUSTER REPORT LIST */}
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.96 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.96 }}
+                              transition={{ duration: 0.16, ease: 'easeOut' }}
+                              className="w-72 sm:w-76 max-h-[480px] sm:max-h-[500px] flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 text-left shrink-0 overflow-hidden"
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseEnter={cancelCloseTimer}
+                            >
                             {/* Header */}
                             <div className="shrink-0 p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
                               <div className="flex items-center justify-between">
@@ -1219,17 +1273,11 @@ export const InteractiveImpactGlobe: React.FC = () => {
                                     data-testid={`report-row-${pin.id}`}
                                     data-report-id={pin.id}
                                     onMouseEnter={() => {
-                                      if (hoverLeaveTimerRef.current) {
-                                        clearTimeout(hoverLeaveTimerRef.current);
-                                        hoverLeaveTimerRef.current = null;
-                                      }
+                                      cancelCloseTimer();
                                       setHoveredDetailReport(pin);
                                     }}
                                     onMouseOver={() => {
-                                      if (hoverLeaveTimerRef.current) {
-                                        clearTimeout(hoverLeaveTimerRef.current);
-                                        hoverLeaveTimerRef.current = null;
-                                      }
+                                      cancelCloseTimer();
                                       setHoveredDetailReport(pin);
                                     }}
                                     onFocus={() => setHoveredDetailReport(pin)}
@@ -1293,17 +1341,31 @@ export const InteractiveImpactGlobe: React.FC = () => {
                           {/* LEVEL 2: DETAILED FLYOUT CARD BESIDE THE LIST */}
                           {activeReport && (
                             <motion.div
-                              key={activeReport.id}
+                              key="cluster-flyout-card"
                               initial={{ opacity: 0, scale: 0.96 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.96 }}
                               transition={{ duration: 0.16, ease: 'easeOut' }}
-                              className="w-80 sm:w-88 max-h-[480px] sm:max-h-[500px] flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 text-left shrink-0 overflow-hidden"
+                              tabIndex={0}
+                              className="w-80 sm:w-88 max-h-[480px] sm:max-h-[500px] flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 text-left shrink-0 overflow-hidden focus:outline-none"
                               onClick={(e) => e.stopPropagation()}
-                              onMouseEnter={() => {
-                                if (hoverLeaveTimerRef.current) {
-                                  clearTimeout(hoverLeaveTimerRef.current);
-                                  hoverLeaveTimerRef.current = null;
+                              onMouseEnter={cancelCloseTimer}
+                              onMouseLeave={scheduleCloseTimer}
+                              onKeyDown={(e) => {
+                                if (cluster.pins.length > 1) {
+                                  const activeIdx = cluster.pins.findIndex((p) => p.id === activeReport.id);
+                                  const cur = activeIdx >= 0 ? activeIdx : 0;
+                                  if (e.key === 'ArrowLeft') {
+                                    e.preventDefault();
+                                    cancelCloseTimer();
+                                    const prevIdx = (cur - 1 + cluster.pins.length) % cluster.pins.length;
+                                    setHoveredDetailReport(cluster.pins[prevIdx]);
+                                  } else if (e.key === 'ArrowRight') {
+                                    e.preventDefault();
+                                    cancelCloseTimer();
+                                    const nextIdx = (cur + 1) % cluster.pins.length;
+                                    setHoveredDetailReport(cluster.pins[nextIdx]);
+                                  }
                                 }
                               }}
                             >
@@ -1319,6 +1381,48 @@ export const InteractiveImpactGlobe: React.FC = () => {
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1">
+                                    {/* Smooth Left/Right Arrow Navigation Between Report Previews */}
+                                    {cluster.pins.length > 1 && (() => {
+                                      const activeIdx = cluster.pins.findIndex((p) => p.id === activeReport.id);
+                                      const currentIndex = activeIdx >= 0 ? activeIdx : 0;
+                                      return (
+                                        <div className="flex items-center gap-1 mr-1">
+                                          <button
+                                            type="button"
+                                            title="Previous report (Left Arrow)"
+                                            aria-label="Previous report"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              cancelCloseTimer();
+                                              const prevIdx = (currentIndex - 1 + cluster.pins.length) % cluster.pins.length;
+                                              setHoveredDetailReport(cluster.pins[prevIdx]);
+                                            }}
+                                            className="w-5 h-5 rounded-md flex items-center justify-center bg-slate-200/80 dark:bg-slate-700 hover:bg-teal-500 hover:text-white text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                                          >
+                                            <span className="material-symbols-outlined text-[14px]">chevron_left</span>
+                                          </button>
+                                          <span className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400">
+                                            {currentIndex + 1}/{cluster.pins.length}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            title="Next report (Right Arrow)"
+                                            aria-label="Next report"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              cancelCloseTimer();
+                                              const nextIdx = (currentIndex + 1) % cluster.pins.length;
+                                              setHoveredDetailReport(cluster.pins[nextIdx]);
+                                            }}
+                                            className="w-5 h-5 rounded-md flex items-center justify-center bg-slate-200/80 dark:bg-slate-700 hover:bg-teal-500 hover:text-white text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                                          >
+                                            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                                          </button>
+                                        </div>
+                                      );
+                                    })()}
                                     <span
                                       className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase ${
                                         activeReport.status === 'RESOLVED'
@@ -1412,12 +1516,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
                                     e.stopPropagation();
                                     handleDirectNavigateToReport(activeReport);
                                   }}
-                                  onMouseEnter={() => {
-                                    if (hoverLeaveTimerRef.current) {
-                                      clearTimeout(hoverLeaveTimerRef.current);
-                                      hoverLeaveTimerRef.current = null;
-                                    }
-                                  }}
+                                  onMouseEnter={cancelCloseTimer}
                                   className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-teal-600/25 transition-all cursor-pointer group"
                                 >
                                   <span className="material-symbols-outlined text-[17px] group-hover:scale-110 transition-transform">
@@ -1432,7 +1531,8 @@ export const InteractiveImpactGlobe: React.FC = () => {
                             </motion.div>
                           )}
                         </div>
-                      );
+                      </div>
+                    );
                     })()}
                   </AnimatePresence>
 
@@ -1466,13 +1566,10 @@ export const InteractiveImpactGlobe: React.FC = () => {
                             top: `${clampTop}px`,
                             maxHeight: `${maxPopupHeight}px`,
                           }}
-                          onMouseEnter={() => {
-                            if (hoverLeaveTimerRef.current) {
-                              clearTimeout(hoverLeaveTimerRef.current);
-                              hoverLeaveTimerRef.current = null;
-                            }
-                          }}
-                          onMouseLeave={handleMouseLeavePin}
+                          onMouseEnter={cancelCloseTimer}
+                          onMouseLeave={scheduleCloseTimer}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <motion.div
                             key={pin.id}
@@ -1482,12 +1579,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
                             transition={{ duration: 0.16, ease: 'easeOut' }}
                             className="w-80 sm:w-88 max-h-[480px] sm:max-h-[500px] flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 text-left shrink-0 overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
-                            onMouseEnter={() => {
-                              if (hoverLeaveTimerRef.current) {
-                                clearTimeout(hoverLeaveTimerRef.current);
-                                hoverLeaveTimerRef.current = null;
-                              }
-                            }}
+                            onMouseEnter={cancelCloseTimer}
                           >
                             {/* SECTION A: FIXED COMPACT HEADER */}
                             <div className="shrink-0 p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
@@ -1594,12 +1686,7 @@ export const InteractiveImpactGlobe: React.FC = () => {
                                   e.stopPropagation();
                                   handleDirectNavigateToReport(pin);
                                 }}
-                                onMouseEnter={() => {
-                                  if (hoverLeaveTimerRef.current) {
-                                    clearTimeout(hoverLeaveTimerRef.current);
-                                    hoverLeaveTimerRef.current = null;
-                                  }
-                                }}
+                                onMouseEnter={cancelCloseTimer}
                                 className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-teal-600/25 transition-all cursor-pointer group"
                               >
                                 <span className="material-symbols-outlined text-[17px] group-hover:scale-110 transition-transform">

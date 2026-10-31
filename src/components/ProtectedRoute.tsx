@@ -38,6 +38,13 @@ const ROLE_META: Record<UserRole, {
     icon: 'engineering',
     description: 'Mobile workspace to view assigned tasks, log repair progress, and upload compaction photos.',
   },
+  COMPANY: {
+    portalName: 'Corporate & CSR Sponsorship Portal',
+    roleLabel: 'Corporate CSR Partner',
+    dashboardRoute: '/company',
+    icon: 'domain',
+    description: 'Sponsor verified road defect restorations, customize funding, and track municipal field compaction audits.',
+  },
 };
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -55,9 +62,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // 1. Unauthenticated -> Redirect to sign-in with preselected role and preserved redirect
   if (!isAuthenticated || !user) {
     const targetRole = allowedRoles?.[0] || 'CITIZEN';
+    const loginTarget = targetRole === 'COMPANY'
+      ? `/company/login?redirect=${encodeURIComponent(location.pathname)}`
+      : `/login?role=${targetRole}&redirect=${encodeURIComponent(location.pathname)}`;
     return (
       <Navigate
-        to={`/login?role=${targetRole}&redirect=${encodeURIComponent(location.pathname)}`}
+        to={loginTarget}
         replace
       />
     );

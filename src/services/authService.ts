@@ -75,6 +75,15 @@ export const DEMO_USERS: Record<UserRole, User> = {
     teamId: 'team-04',
     avatarInitials: 'GS',
   },
+  COMPANY: {
+    id: 'user-company-01',
+    name: 'Vikramaditya Sengupta',
+    email: 'csr.roads@tatamotors.com',
+    role: 'COMPANY',
+    title: 'CSR Infrastructure Wing Lead',
+    department: 'Tata Motors CSR Infrastructure Desk',
+    avatarInitials: 'TM',
+  },
 };
 
 const USER_STORAGE_KEY = 'potholefix_user';
@@ -99,6 +108,8 @@ export const authService = {
         } else if (email.includes('asphalt') || email.includes('crew') || email.includes('unit') || email.includes('vance') || email.includes('pwd') || email.includes('gurpreet')) {
           chosenRole = 'REPAIR_TEAM';
           chosenCrew = REPAIR_CREWS[0];
+        } else if (email.includes('tatamotors') || email.includes('csr') || email.includes('infosys') || email.includes('company')) {
+          chosenRole = 'COMPANY';
         }
       } else if (chosenRole === 'REPAIR_TEAM') {
         if (email.includes('amit') || email.includes('chandigarh') || email.includes('team-02')) {

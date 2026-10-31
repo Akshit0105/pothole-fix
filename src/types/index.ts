@@ -1,6 +1,6 @@
 // Core Domain Models & Roles
 
-export type UserRole = 'CITIZEN' | 'AUTHORITY' | 'REPAIR_TEAM';
+export type UserRole = 'CITIZEN' | 'AUTHORITY' | 'REPAIR_TEAM' | 'COMPANY';
 
 export type ReportStatus =
   | 'SUBMITTED'

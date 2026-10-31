@@ -19,6 +19,7 @@ export const DemoRoleBanner: React.FC = () => {
         CITIZEN: 'akshit@potholefix.in',
         AUTHORITY: 'alice@potholefix.gov.in',
         REPAIR_TEAM: 'gurpreet@pwd.punjab.gov.in',
+        COMPANY: 'csr.roads@tatamotors.com',
       };
       try {
         await login(emailMap[role], undefined, 'password123');

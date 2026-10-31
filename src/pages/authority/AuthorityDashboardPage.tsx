@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { reportsService } from '../../services/reportsService';
 import { tasksService } from '../../services/tasksService';
+import { companyService } from '../../services/companyService';
 import type { PotholeReport, RepairTask } from '../../types';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -237,6 +238,36 @@ export const AuthorityDashboardPage: React.FC = () => {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Corporate Sponsorship Proposals Notification Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-teal-500/30">
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center shrink-0 border border-teal-400/30">
+            <span className="material-symbols-outlined text-[22px]">domain</span>
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm">Company CSR Sponsorship Proposals</span>
+              {companyService.getPendingRequestsCount() > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                  {companyService.getPendingRequestsCount()} PENDING REVIEW
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-teal-100/70">
+              Corporate road adoption proposals with municipal funding commitments and Level-1 audit workflows.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          to="/authority/sponsorships"
+          className="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0"
+        >
+          <span>Open CSR Triage Desk</span>
+          <span className="material-symbols-outlined text-[16px]">east</span>
+        </Link>
       </div>
 
       {/* 4 MAIN INTERACTIVE SECTION CARDS (Phase 1 & Phase 2 Master Upgrade) */}

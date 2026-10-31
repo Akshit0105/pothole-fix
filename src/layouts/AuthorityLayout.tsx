@@ -1,16 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { UserProfileMenu } from '../components/common/UserProfileMenu';
+import { companyService } from '../services/companyService';
 
 export const AuthorityLayout: React.FC = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(() => companyService.getPendingRequestsCount());
+
+  useEffect(() => {
+    // Keep count reactive across storage events
+    const updateCount = () => setPendingCount(companyService.getPendingRequestsCount());
+    window.addEventListener('storage', updateCount);
+    const interval = setInterval(updateCount, 2000);
+    return () => {
+      window.removeEventListener('storage', updateCount);
+      clearInterval(interval);
+    };
+  }, []);
 
   const navItems = [
     { label: 'Triage Overview', path: '/authority/dashboard', icon: 'dashboard' },
     { label: 'Incoming Reports', path: '/authority/reports', icon: 'flag' },
     { label: 'Active Work Orders', path: '/authority/tasks', icon: 'assignment' },
     { label: 'Repair Approvals', path: '/authority/approvals', icon: 'verified' },
+    {
+      label: 'Company Sponsorships',
+      path: '/authority/sponsorships',
+      icon: 'domain',
+      badge: pendingCount > 0 ? String(pendingCount) : undefined,
+      badgeColor: 'bg-amber-500 text-white',
+    },
   ];
 
   return (
@@ -91,14 +111,21 @@ export const AuthorityLayout: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-title-md text-label-md transition-all ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-title-md text-label-md transition-all ${
                     isActive
                       ? 'bg-primary-fixed/40 text-primary font-semibold shadow-xs'
                       : 'text-secondary hover:text-on-surface hover:bg-surface-container-low'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold shadow-xs ${item.badgeColor || 'bg-amber-500 text-white'}`}>
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

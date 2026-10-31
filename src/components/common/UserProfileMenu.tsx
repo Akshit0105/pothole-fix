@@ -29,6 +29,12 @@ const ROLE_BADGE_MAP: Record<UserRole, { label: string; bg: string; text: string
     text: 'text-on-tertiary-fixed',
     icon: 'engineering',
   },
+  COMPANY: {
+    label: 'Company / CSR Partner',
+    bg: 'bg-teal-100 dark:bg-teal-900/30',
+    text: 'text-teal-800 dark:text-teal-300',
+    icon: 'domain',
+  },
 };
 
 export const UserProfileMenu: React.FC<UserProfileMenuProps> = ({

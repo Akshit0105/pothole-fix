@@ -22,6 +22,7 @@ export const DevDemoDrawer: React.FC = () => {
         CITIZEN: 'akshit@potholefix.in',
         AUTHORITY: 'alice@potholefix.gov.in',
         REPAIR_TEAM: 'gurpreet@pwd.punjab.gov.in',
+        COMPANY: 'csr.roads@tatamotors.com',
       };
       try {
         await login(emailMap[role], undefined, 'password123');
@@ -124,6 +125,20 @@ export const DevDemoDrawer: React.FC = () => {
                 <span>Repair Crew (Punjab PWD Unit 04 · Gurpreet Singh)</span>
               </div>
               <span className="text-[10px] text-secondary">/team</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/company');
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm text-teal-600">domain</span>
+                <span className="font-semibold">Company / CSR Portal</span>
+              </div>
+              <span className="text-[10px] font-mono text-teal-600 font-bold">/company</span>
             </button>
           </div>
 

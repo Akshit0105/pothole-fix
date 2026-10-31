@@ -437,6 +437,67 @@ export const HomePage: React.FC = () => {
           ))}
         </div>
       </motion.section>
+
+      {/* 6. CORPORATE / CSR SPONSORSHIP PORTAL BANNER */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="rounded-3xl p-6 sm:p-10 bg-gradient-to-br from-teal-950 via-teal-900 to-slate-900 text-white relative overflow-hidden shadow-xl border border-teal-500/30"
+      >
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-8 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 text-xs font-bold uppercase tracking-wider">
+              <span className="material-symbols-outlined text-[16px]">domain</span>
+              <span>Corporate Social Responsibility (CSR) Portal</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-teal-500 text-slate-950 text-[9px] font-black">NEW</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+              Sponsor Arterial Corridors &amp; Highway Repairs with 100% Audit Compliance
+            </h2>
+            <p className="text-teal-100/80 text-sm sm:text-base leading-relaxed max-w-2xl">
+              Enable your enterprise to sponsor critical road hazard restorations across Chandigarh, Punjab, and Haryana. Submit CSR road restoration proposals for municipal authority review, squad assignment, and Level-1 photographic compaction audit records. CSR eligibility and applicable tax treatment require independent verification.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link
+                to="/company/login"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow-lg hover:shadow-teal-500/25 transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">corporate_fare</span>
+                <span>Enter Company / CSR Portal</span>
+                <span className="material-symbols-outlined text-[18px]">east</span>
+              </Link>
+              <Link
+                to="/company/potholes"
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-sm transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">travel_explore</span>
+                <span>Browse Eligible Corridors</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <span className="text-teal-400 font-extrabold text-2xl sm:text-3xl block">100%</span>
+              <span className="text-teal-100/70 text-xs font-medium mt-1 block">Authority Verified Corridors</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <span className="text-teal-400 font-extrabold text-2xl sm:text-3xl block">Proposal</span>
+              <span className="text-teal-100/70 text-xs font-medium mt-1 block">Authority Review Workflow</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <span className="text-teal-400 font-extrabold text-2xl sm:text-3xl block">Level-1</span>
+              <span className="text-teal-100/70 text-xs font-medium mt-1 block">Compaction Photo Audit</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <span className="text-teal-400 font-extrabold text-2xl sm:text-3xl block">Live GPS</span>
+              <span className="text-teal-100/70 text-xs font-medium mt-1 block">Repair Progress Tracking</span>
+            </div>
+          </div>
+        </div>
+      </motion.section>
     </div>
   );
 };

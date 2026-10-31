@@ -52,6 +52,17 @@ const ROLE_OPTIONS: RoleOption[] = [
     demoName: 'Gurpreet Singh (Lead)',
     targetDashboard: '/team/dashboard',
   },
+  {
+    role: 'COMPANY',
+    title: 'Company / CSR Partner',
+    badge: 'Corporate CSR',
+    badgeColor: 'bg-teal-500/15 text-teal-700 dark:text-teal-300',
+    icon: 'domain',
+    description: 'Corporate portal to sponsor verified road defect restorations, manage pledges, and track municipal field compaction audits.',
+    demoEmail: 'csr.roads@tatamotors.com',
+    demoName: 'Vikramaditya Sengupta',
+    targetDashboard: '/company',
+  },
 ];
 
 export const LoginPage: React.FC = () => {
@@ -64,8 +75,10 @@ export const LoginPage: React.FC = () => {
   const redirectParam = searchParams.get('redirect');
 
   const initialRole: UserRole =
-    roleParam && ['CITIZEN', 'AUTHORITY', 'REPAIR_TEAM'].includes(roleParam)
+    roleParam && ['CITIZEN', 'AUTHORITY', 'REPAIR_TEAM', 'COMPANY'].includes(roleParam)
       ? roleParam
+      : redirectParam?.includes('/company')
+      ? 'COMPANY'
       : redirectParam?.includes('/team')
       ? 'REPAIR_TEAM'
       : redirectParam?.includes('/authority')
@@ -539,7 +552,28 @@ export const LoginPage: React.FC = () => {
                 </div>
               </form>
 
-              {/* Footer Links */}
+
+              {/* Corporate / CSR Sponsorship Portal Callout */}
+              <div className="mt-5 p-3.5 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[18px]">domain</span>
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-on-surface">Corporate / CSR Sponsorship Desk</p>
+                    <p className="text-[11px] text-secondary">Sponsor arterial road &amp; highway repairs with municipal proposal triage</p>
+                  </div>
+                </div>
+                <Link
+                  to="/company/login"
+                  className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shrink-0 transition-colors flex items-center gap-1 shadow-xs"
+                >
+                  <span>Company Sign In</span>
+                  <span className="material-symbols-outlined text-[14px]">east</span>
+                </Link>
+              </div>
+
+{/* Footer Links */}
               <div className="mt-6 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-3 text-xs text-secondary">
                 <Link
                   to="/"

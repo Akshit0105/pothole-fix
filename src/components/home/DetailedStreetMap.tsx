@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MapContainer,
   TileLayer,
   Marker as LeafletMarker,
   Popup as LeafletPopup,
+  Tooltip as LeafletTooltip,
+  Polyline as LeafletPolyline,
+  CircleMarker as LeafletCircleMarker,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -46,36 +49,51 @@ export const PRESET_DEMO_LOCATIONS: Record<string, { lat: number; lng: number; n
   },
 };
 
-// Custom Leaflet Icons using clean SVG and inline styles
-const createReportPinIcon = (isSelected: boolean, status?: string) => {
+// Haversine distance calculator in km
+function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Custom Leaflet Icons using clean SVG and inline styles with stable DOM elements
+const createReportPinIcon = (status?: string) => {
   const isResolved = status === 'RESOLVED';
   const bgColor = isResolved ? '#10b981' : '#ef4444';
   const shadowColor = isResolved ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)';
-  const size = isSelected ? 42 : 32;
 
   return L.divIcon({
     className: 'custom-pothole-pin',
     html: `
       <div style="
         position: relative;
-        width: ${size}px;
-        height: ${size}px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       ">
-        ${
-          isSelected
-            ? `<div style="
-                position: absolute;
-                inset: -7px;
-                border-radius: 50%;
-                background: ${isResolved ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'};
-                border: 2px dashed ${bgColor};
-                animation: pulse 1.8s infinite;
-              "></div>`
-            : ''
-        }
-        <div style="
-          width: 100%;
-          height: 100%;
+        <div class="pin-pulse-ring" style="
+          display: none;
+          position: absolute;
+          inset: -8px;
+          border-radius: 50%;
+          background: ${isResolved ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'};
+          border: 2px dashed ${bgColor};
+          animation: pulse 1.8s infinite;
+          pointer-events: none;
+        "></div>
+        <div class="pin-badge" style="
+          width: 32px;
+          height: 32px;
           background: ${bgColor};
           border: 2.5px solid #ffffff;
           border-radius: 50% 50% 50% 0;
@@ -84,21 +102,22 @@ const createReportPinIcon = (isSelected: boolean, status?: string) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.2s ease;
+          transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
         ">
           <span style="
             transform: rotate(45deg);
             color: #ffffff;
             font-family: 'Material Symbols Outlined';
-            font-size: ${isSelected ? '22px' : '17px'};
+            font-size: 17px;
             line-height: 1;
+            pointer-events: none;
           ">${isResolved ? 'task_alt' : 'location_on'}</span>
         </div>
       </div>
     `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size + 4],
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -34],
   });
 };
 
@@ -146,33 +165,41 @@ const createSearchMarkerIcon = () =>
     popupAnchor: [0, -42],
   });
 
-// Map Controller Helper: forces invalidateSize and direct recenter on report change
-interface MapInitializerProps {
+const createUserPinIcon = () =>
+  L.divIcon({
+    className: 'custom-user-location-pin',
+    html: `
+      <div style="position: relative; width: 28px; height: 28px;">
+        <div style="position: absolute; inset: -7px; border-radius: 50%; background: rgba(37, 99, 235, 0.35); border: 2px dashed #2563eb; animation: pulse 1.6s infinite;"></div>
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: #2563eb; border: 3px solid #ffffff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.6); display: flex; align-items: center; justify-content: center;">
+          <span style="color: #ffffff; font-family: 'Material Symbols Outlined'; font-size: 16px; line-height: 1;">my_location</span>
+        </div>
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
+  });
+
+// Map Controller: smooth flyTo and bounds adjusting without tearing down MapContainer DOM
+interface MapViewControllerProps {
   center: [number, number];
   zoom: number;
 }
 
-const MapInitializer: React.FC<MapInitializerProps> = ({ center, zoom }) => {
+const MapViewController: React.FC<MapViewControllerProps> = ({ center, zoom }) => {
   const map = useMap();
+  const prevCenterRef = useRef<[number, number]>(center);
+
   useEffect(() => {
     map.invalidateSize();
-    map.setView(center, zoom, { animate: false });
-
-    const t1 = setTimeout(() => {
-      map.invalidateSize();
-      map.setView(center, zoom, { animate: false });
-    }, 60);
-
-    const t2 = setTimeout(() => {
-      map.invalidateSize();
-      map.setView(center, zoom, { animate: false });
-    }, 200);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    const dist = Math.hypot(center[0] - prevCenterRef.current[0], center[1] - prevCenterRef.current[1]);
+    if (dist > 0.00001) {
+      prevCenterRef.current = center;
+      map.flyTo(center, zoom, { duration: 0.6 });
+    }
   }, [center[0], center[1], zoom, map]);
+
   return null;
 };
 
@@ -193,11 +220,107 @@ const MapClickHandler: React.FC<MapClickHandlerProps> = ({ onLocationSelected, e
   return null;
 };
 
+// Isolated interactive defect marker with hover synchronization & clean visual highlights
+interface ReportDefectMarkerProps {
+  report: GlobePinData;
+  displayPos: [number, number];
+  isSelected: boolean;
+  isHovered: boolean;
+  anyMarkerHovered: boolean;
+  isRouteDestination: boolean;
+  onHover: (report: GlobePinData) => void;
+  onHoverEnd: () => void;
+  onSelect: (report: GlobePinData) => void;
+  onGetDirections: (report: GlobePinData) => void;
+}
+
+const ReportDefectMarker: React.FC<ReportDefectMarkerProps> = ({
+  report,
+  displayPos,
+  isSelected,
+  isHovered,
+  anyMarkerHovered,
+  isRouteDestination,
+  onHover,
+  onHoverEnd,
+  onSelect,
+}) => {
+  const markerRef = useRef<L.Marker | null>(null);
+  const isVisuallyHighlighted = isHovered || (isSelected && !anyMarkerHovered) || isRouteDestination;
+  const showTooltip = isHovered || (isSelected && !anyMarkerHovered);
+  const baseIcon = useMemo(() => createReportPinIcon(report.status), [report.status]);
+
+  useEffect(() => {
+    if (markerRef.current) {
+      const el = markerRef.current.getElement();
+      if (el) {
+        el.setAttribute('data-report-id', report.trackingNumber || report.id);
+        const ring = el.querySelector('.pin-pulse-ring') as HTMLElement | null;
+        const badge = el.querySelector('.pin-badge') as HTMLElement | null;
+        if (isVisuallyHighlighted) {
+          el.style.zIndex = '1000';
+          if (ring) ring.style.display = 'block';
+          if (badge) badge.style.transform = 'scale(1.25) rotate(-45deg)';
+        } else {
+          el.style.zIndex = '';
+          if (ring) ring.style.display = 'none';
+          if (badge) badge.style.transform = 'scale(1) rotate(-45deg)';
+        }
+      }
+    }
+  }, [isVisuallyHighlighted, report.trackingNumber, report.id]);
+
+  return (
+    <LeafletMarker
+      ref={markerRef}
+      key={report.id}
+      position={displayPos}
+      icon={baseIcon}
+      eventHandlers={{
+        mouseover: () => {
+          onHover(report);
+        },
+        mouseout: () => {
+          onHoverEnd();
+        },
+        click: () => {
+          onSelect(report);
+        },
+      }}
+    >
+      {/* Compact PF ID Tooltip shown ONLY when hovered or when selected without any other hover */}
+      {showTooltip && (
+        <LeafletTooltip
+          direction="top"
+          offset={[0, -24]}
+          opacity={0.98}
+          permanent={isSelected && !anyMarkerHovered}
+          className="clean-pf-compact-tooltip"
+        >
+          <div className="font-mono font-bold text-xs text-slate-900 leading-none py-0.5 px-1 bg-white/95 rounded shadow-xs border border-slate-200">
+            #{report.reportId || report.trackingNumber || report.id}
+          </div>
+        </LeafletTooltip>
+      )}
+    </LeafletMarker>
+  );
+};
+
 export interface DetailedStreetMapProps {
   initialReport: GlobePinData | null;
   allReports: GlobePinData[];
   onBackToGlobe: () => void;
   onSelectReport: (report: GlobePinData) => void;
+}
+
+export interface ActiveRouteInfo {
+  destinationId: string;
+  destinationName: string;
+  destinationCoords: [number, number];
+  userCoords: [number, number];
+  coordinates: [number, number][]; // [lat, lng] array
+  distanceKm: number;
+  durationMins: number;
 }
 
 export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
@@ -207,6 +330,11 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
   onSelectReport,
 }) => {
   const [selectedReport, setSelectedReport] = useState<GlobePinData | null>(initialReport);
+  const [hoveredReport, setHoveredReport] = useState<GlobePinData | null>(null);
+
+  // Active report displayed in the right panel and targeted by directions (Hover Synchronization)
+  const activeDisplayReport = hoveredReport || selectedReport;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchLocation, setSearchLocation] = useState<{
@@ -216,7 +344,13 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
     isCustomPin: boolean;
   } | null>(null);
 
-  // Exact stored GPS coordinates of selected report (Defaulting to Madhya Marg 30.7290, 76.8040 if initialReport missing)
+  // Directions & Routing State
+  const [activeRoute, setActiveRoute] = useState<ActiveRouteInfo | null>(null);
+  const [isCalculatingDirections, setIsCalculatingDirections] = useState(false);
+  const [directionsNotice, setDirectionsNotice] = useState<string | null>(null);
+  const [directionsError, setDirectionsError] = useState<string | null>(null);
+
+  // Exact stored GPS coordinates of selected report
   const initialLat = initialReport?.lat ?? 30.7290;
   const initialLng = initialReport?.lng ?? 76.8040;
 
@@ -227,11 +361,174 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
   useEffect(() => {
     if (initialReport && initialReport.lat && initialReport.lng) {
       setSelectedReport(initialReport);
+      setHoveredReport(null);
       setSearchLocation(null);
       setMapCenter([initialReport.lat, initialReport.lng]);
       setMapZoom(18);
     }
   }, [initialReport]);
+
+  // Disperse overlapping / coincident coordinates so all potholes are independently selectable (Spiderfy, Fix 3)
+  const dispersedMarkers = useMemo(() => {
+    const groups: GlobePinData[][] = [];
+    const threshold = 0.0002; // ~22 meters
+
+    allReports.forEach((rep) => {
+      let matchedGroup = false;
+      for (const group of groups) {
+        const leader = group[0];
+        const dist = Math.hypot(rep.lat - leader.lat, rep.lng - leader.lng);
+        if (dist < threshold) {
+          group.push(rep);
+          matchedGroup = true;
+          break;
+        }
+      }
+      if (!matchedGroup) {
+        groups.push([rep]);
+      }
+    });
+
+    const list: {
+      report: GlobePinData;
+      displayPos: [number, number];
+      originalPos: [number, number];
+      isDispersed: boolean;
+    }[] = [];
+
+    groups.forEach((group) => {
+      if (group.length === 1) {
+        const r = group[0];
+        list.push({
+          report: r,
+          displayPos: [r.lat, r.lng],
+          originalPos: [r.lat, r.lng],
+          isDispersed: false,
+        });
+      } else {
+        const centerLat = group.reduce((sum, r) => sum + r.lat, 0) / group.length;
+        const centerLng = group.reduce((sum, r) => sum + r.lng, 0) / group.length;
+        const radius = 0.00028; // ~30m radius around cluster center
+
+        group.forEach((r, idx) => {
+          const angle = (2 * Math.PI * idx) / group.length;
+          const dLat = radius * Math.sin(angle);
+          const dLng = (radius * Math.cos(angle)) / Math.cos((centerLat * Math.PI) / 180);
+          list.push({
+            report: r,
+            displayPos: [centerLat + dLat, centerLng + dLng],
+            originalPos: [r.lat, r.lng],
+            isDispersed: true,
+          });
+        });
+      }
+    });
+
+    return list;
+  }, [allReports]);
+
+  // Handle Directions Request
+  const handleGetDirections = useCallback(
+    async (targetReport: GlobePinData, cachedUserCoords?: [number, number]) => {
+      setIsCalculatingDirections(true);
+      setDirectionsError(null);
+      setDirectionsNotice(`Requesting GPS location for turn-by-turn route to #${targetReport.trackingNumber || targetReport.id}...`);
+
+      if (!targetReport.lat || !targetReport.lng || isNaN(targetReport.lat) || isNaN(targetReport.lng)) {
+        setDirectionsError('Invalid GPS coordinates stored for this defect.');
+        setIsCalculatingDirections(false);
+        return;
+      }
+
+      const proceedWithRoute = async (userLat: number, userLng: number) => {
+        try {
+          // Fetch route from public OSRM router
+          const res = await fetch(
+            `https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${targetReport.lng},${targetReport.lat}?overview=full&geometries=geojson`
+          );
+          const data = await res.json();
+
+          if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            const latLngs: [number, number][] = route.geometry.coordinates.map(
+              (c: [number, number]) => [c[1], c[0]]
+            );
+
+            setActiveRoute({
+              destinationId: targetReport.trackingNumber || targetReport.id,
+              destinationName: targetReport.roadName || targetReport.title,
+              destinationCoords: [targetReport.lat, targetReport.lng],
+              userCoords: [userLat, userLng],
+              coordinates: latLngs,
+              distanceKm: Number((route.distance / 1000).toFixed(1)),
+              durationMins: Math.max(1, Math.round(route.duration / 60)),
+            });
+            setDirectionsNotice(null);
+          } else {
+            // Straight-line fallback if OSRM route unavailable
+            const dist = calculateHaversineDistanceKm(userLat, userLng, targetReport.lat, targetReport.lng);
+            setActiveRoute({
+              destinationId: targetReport.trackingNumber || targetReport.id,
+              destinationName: targetReport.roadName || targetReport.title,
+              destinationCoords: [targetReport.lat, targetReport.lng],
+              userCoords: [userLat, userLng],
+              coordinates: [
+                [userLat, userLng],
+                [targetReport.lat, targetReport.lng],
+              ],
+              distanceKm: Number(dist.toFixed(1)),
+              durationMins: Math.max(1, Math.round((dist / 35) * 60)),
+            });
+            setDirectionsNotice(null);
+          }
+        } catch (err) {
+          console.warn('OSRM routing request failed:', err);
+          // Fallback line
+          const dist = calculateHaversineDistanceKm(userLat, userLng, targetReport.lat, targetReport.lng);
+          setActiveRoute({
+            destinationId: targetReport.trackingNumber || targetReport.id,
+            destinationName: targetReport.roadName || targetReport.title,
+            destinationCoords: [targetReport.lat, targetReport.lng],
+            userCoords: [userLat, userLng],
+            coordinates: [
+              [userLat, userLng],
+              [targetReport.lat, targetReport.lng],
+            ],
+            distanceKm: Number(dist.toFixed(1)),
+            durationMins: Math.max(1, Math.round((dist / 35) * 60)),
+          });
+          setDirectionsNotice(null);
+        } finally {
+          setIsCalculatingDirections(false);
+        }
+      };
+
+      if (cachedUserCoords) {
+        await proceedWithRoute(cachedUserCoords[0], cachedUserCoords[1]);
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        setDirectionsError('Geolocation is not supported by your browser. Use Google Maps directions link below.');
+        setIsCalculatingDirections(false);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          await proceedWithRoute(pos.coords.latitude, pos.coords.longitude);
+        },
+        (err) => {
+          console.warn('Geolocation denied or unavailable:', err.message);
+          setIsCalculatingDirections(false);
+          setDirectionsNotice(null);
+          setDirectionsError('Location permission was denied or unavailable. Open turn-by-turn directions directly in Google Maps.');
+        },
+        { timeout: 7000, enableHighAccuracy: true }
+      );
+    },
+    []
+  );
 
   // Handle Search Execution
   const handlePerformSearch = useCallback(
@@ -248,7 +545,6 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
 
       if (matchedPresetKey) {
         const preset = PRESET_DEMO_LOCATIONS[matchedPresetKey];
-        // Check if an existing report matches this preset location (e.g. Madhya Marg or Sector 17)
         const matchedReport = allReports.find(
           (r) =>
             Math.abs(r.lat - preset.lat) < 0.005 &&
@@ -261,8 +557,10 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
           setMapCenter([matchedReport.lat, matchedReport.lng]);
           setMapZoom(18);
           onSelectReport(matchedReport);
+          if (activeRoute) {
+            handleGetDirections(matchedReport, activeRoute.userCoords);
+          }
         } else {
-          // Preset location without an existing report (e.g. Sector 43, Chandigarh)
           setSelectedReport(null);
           setSearchLocation({
             lat: preset.lat,
@@ -283,7 +581,8 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
           r.title.toLowerCase().includes(trimmed.toLowerCase()) ||
           r.locationName.toLowerCase().includes(trimmed.toLowerCase()) ||
           (r.id && r.id.toLowerCase().includes(trimmed.toLowerCase())) ||
-          (r.reportId && r.reportId.toLowerCase().includes(trimmed.toLowerCase()))
+          (r.reportId && r.reportId.toLowerCase().includes(trimmed.toLowerCase())) ||
+          (r.trackingNumber && r.trackingNumber.toLowerCase().includes(trimmed.toLowerCase()))
       );
 
       if (foundInReports) {
@@ -292,6 +591,9 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
         setMapCenter([foundInReports.lat, foundInReports.lng]);
         setMapZoom(18);
         onSelectReport(foundInReports);
+        if (activeRoute) {
+          handleGetDirections(foundInReports, activeRoute.userCoords);
+        }
         setIsSearching(false);
         return;
       }
@@ -328,7 +630,7 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
         setIsSearching(false);
       }
     },
-    [allReports, onSelectReport]
+    [allReports, onSelectReport, activeRoute, handleGetDirections]
   );
 
   // Handle Dragging Search Marker
@@ -363,9 +665,9 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
     }
   };
 
-  // Active Coordinates for Google Maps & Telemetry
-  const activeLat = selectedReport ? selectedReport.lat : searchLocation?.lat || 30.7290;
-  const activeLng = selectedReport ? selectedReport.lng : searchLocation?.lng || 76.8040;
+  // Active Coordinates for Google Maps & Telemetry (tracks currently hovered/selected report)
+  const activeLat = activeDisplayReport ? activeDisplayReport.lat : searchLocation?.lat || 30.7290;
+  const activeLng = activeDisplayReport ? activeDisplayReport.lng : searchLocation?.lng || 76.8040;
   const googleMapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${activeLat},${activeLng}`;
   const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${activeLat},${activeLng}`;
 
@@ -408,7 +710,7 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
             </span>
             {Object.keys(PRESET_DEMO_LOCATIONS).map((locationKey) => {
               const isCurrent =
-                selectedReport?.locationName.toLowerCase().includes(locationKey.toLowerCase()) ||
+                activeDisplayReport?.locationName.toLowerCase().includes(locationKey.toLowerCase()) ||
                 searchLocation?.name.toLowerCase().includes(locationKey.toLowerCase());
 
               return (
@@ -448,7 +750,7 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search city, sector, road, landmark or address..."
+              placeholder="Search city, sector, road, landmark or defect ID (e.g. PF-101, PF-102)..."
               className="w-full pl-11 pr-10 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-on-surface text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-secondary/60"
             />
             {searchQuery && (
@@ -484,10 +786,10 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
 
       {/* Main 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left Column: Leaflet Map Container (Keyed to guarantee fresh, centered instance) */}
+        {/* Left Column: Leaflet Map Container (STABLE KEY - NO REMOUNTING) */}
         <div className="lg:col-span-7 h-[480px] sm:h-[560px] lg:h-[620px] rounded-2xl overflow-hidden border border-outline-variant/30 shadow-lg relative bg-surface-container-low">
           <MapContainer
-            key={`leaflet-map-${selectedReport?.id || searchLocation?.name || 'base'}-${mapCenter[0]}-${mapCenter[1]}`}
+            key="potholefix-stable-street-map"
             center={mapCenter}
             zoom={mapZoom}
             scrollWheelZoom={true}
@@ -499,59 +801,78 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
               maxZoom={19}
             />
 
-            <MapInitializer center={mapCenter} zoom={mapZoom} />
+            <MapViewController center={mapCenter} zoom={mapZoom} />
             <MapClickHandler onLocationSelected={handleMapLocationSelect} enabled={true} />
 
-            {/* Real Registered Reports Markers */}
-            {allReports.map((report) => {
-              const isSelected = selectedReport?.id === report.id;
-              return (
-                <LeafletMarker
-                  key={report.id}
-                  position={[report.lat, report.lng]}
-                  icon={createReportPinIcon(isSelected, report.status)}
-                  eventHandlers={{
-                    click: () => {
-                      setSelectedReport(report);
-                      setSearchLocation(null);
-                      setMapCenter([report.lat, report.lng]);
-                      setMapZoom(18);
-                      onSelectReport(report);
-                    },
+            {/* Active Route Polyline */}
+            {activeRoute && activeRoute.coordinates.length > 0 && (
+              <>
+                <LeafletPolyline
+                  positions={activeRoute.coordinates}
+                  pathOptions={{
+                    color: '#2563eb',
+                    weight: 6,
+                    opacity: 0.85,
+                    lineCap: 'round',
+                    lineJoin: 'round',
                   }}
+                />
+                {/* User Origin Pin */}
+                <LeafletMarker
+                  position={activeRoute.userCoords}
+                  icon={createUserPinIcon()}
                 >
                   <LeafletPopup autoPan={false}>
-                    <div className="p-1 space-y-1 font-sans min-w-[180px]">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="font-extrabold text-xs text-rose-600">
-                          {report.title}
-                        </span>
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 font-bold uppercase text-slate-700">
-                          {report.status || 'REPORTED'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-700 leading-tight">
-                        {report.locationName}
-                      </p>
-                      <p className="font-mono text-[10px] text-slate-500">
-                        {report.lat.toFixed(5)}° N, {report.lng.toFixed(5)}° E
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedReport(report);
-                          setSearchLocation(null);
-                          onSelectReport(report);
-                        }}
-                        className="mt-1 w-full py-1 rounded bg-rose-50 text-rose-700 font-bold text-[10px] text-center hover:bg-rose-100 transition-colors cursor-pointer"
-                      >
-                        Inspect Report Details
-                      </button>
+                    <div className="p-1 font-sans text-xs">
+                      <strong className="text-blue-600 block">Your Current Location</strong>
+                      <span className="text-[11px] text-slate-600">Starting point for road repair directions</span>
                     </div>
                   </LeafletPopup>
                 </LeafletMarker>
-              );
-            })}
+              </>
+            )}
+
+            {/* Real Registered Reports Markers (Clean by Default, Hover PF ID Tooltip, Dispersed if Overlapping) */}
+            {dispersedMarkers.map((item) => (
+              <React.Fragment key={item.report.id}>
+                {/* Spiderfy connecting line & anchor dot if coordinates are dispersed */}
+                {item.isDispersed && (
+                  <>
+                    <LeafletCircleMarker
+                      center={item.originalPos}
+                      radius={4}
+                      pathOptions={{ color: '#475569', fillColor: '#94a3b8', fillOpacity: 0.8, weight: 1.5 }}
+                    />
+                    <LeafletPolyline
+                      positions={[item.originalPos, item.displayPos]}
+                      pathOptions={{ color: '#64748b', weight: 1.5, dashArray: '3, 4', opacity: 0.8 }}
+                    />
+                  </>
+                )}
+                <ReportDefectMarker
+                  report={item.report}
+                  displayPos={item.displayPos}
+                  isSelected={selectedReport?.id === item.report.id}
+                  isHovered={hoveredReport?.id === item.report.id}
+                  anyMarkerHovered={!!hoveredReport}
+                  isRouteDestination={activeRoute?.destinationId === (item.report.trackingNumber || item.report.id)}
+                  onHover={(r) => setHoveredReport(r)}
+                  onHoverEnd={() => setHoveredReport(null)}
+                  onSelect={(r) => {
+                    setSelectedReport(r);
+                    setHoveredReport(null);
+                    setSearchLocation(null);
+                    setMapCenter([r.lat, r.lng]);
+                    setMapZoom(18);
+                    onSelectReport(r);
+                    if (activeRoute) {
+                      handleGetDirections(r, activeRoute.userCoords);
+                    }
+                  }}
+                  onGetDirections={(r) => handleGetDirections(r)}
+                />
+              </React.Fragment>
+            ))}
 
             {/* Draggable Search Marker for Searched Locations (e.g. Sector 43, Chandigarh) */}
             {searchLocation && (
@@ -582,15 +903,94 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
             )}
           </MapContainer>
 
+          {/* Floating Directions Route Status Bar */}
+          {activeRoute && (
+            <div className="absolute top-3 left-3 right-3 z-[1000] bg-surface/95 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-blue-500/40 shadow-xl flex items-center justify-between gap-3 text-xs animate-fadeIn">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <span className="material-symbols-outlined text-[18px]">directions_car</span>
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-on-surface truncate">
+                      Route to #{activeRoute.destinationId}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800 text-[9px] font-extrabold">
+                      ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-secondary font-medium">
+                    {activeRoute.distanceKm} km · ~{activeRoute.durationMins} min drive · Turn-by-turn guidance
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${activeRoute.destinationCoords[0]},${activeRoute.destinationCoords[1]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary hover:text-primary-dark transition-colors"
+                  title="Open turn-by-turn directions in Google Maps app"
+                >
+                  <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setActiveRoute(null)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                  title="Clear route polyline"
+                >
+                  Clear Route
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Calculating Directions Indicator */}
+          {isCalculatingDirections && directionsNotice && (
+            <div className="absolute top-3 left-3 z-[1000] bg-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-blue-500/30 text-xs text-blue-700 shadow-md flex items-center gap-2 animate-fadeIn">
+              <span className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <span>{directionsNotice}</span>
+            </div>
+          )}
+
+          {/* Geolocation Denied / Fallback Alert Banner */}
+          {directionsError && (
+            <div className="absolute top-3 left-3 right-3 z-[1000] bg-surface/95 backdrop-blur-md p-3 rounded-2xl border border-amber-500/40 shadow-xl flex items-center justify-between gap-3 text-xs animate-fadeIn">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <span className="material-symbols-outlined text-[18px]">info</span>
+                <span>{directionsError}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={googleMapsDirectionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                >
+                  Open in Google Maps
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setDirectionsError(null)}
+                  className="text-secondary hover:text-on-surface p-1"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Floating Map Navigation Badge */}
           <div className="absolute bottom-3 left-3 z-[1000] bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-outline-variant/30 text-[11px] text-secondary shadow-md flex items-center gap-2 pointer-events-none">
             <span className="material-symbols-outlined text-[16px] text-primary">map</span>
             <span>
               {searchLocation
                 ? `Draggable Search Pin: ${searchLocation.name}`
-                : selectedReport
-                ? `Inspecting: ${selectedReport.title}`
-                : 'Click any marker or street to inspect exact coordinates'}
+                : activeDisplayReport
+                ? `Inspecting: #${activeDisplayReport.reportId || activeDisplayReport.trackingNumber || activeDisplayReport.id} (${activeDisplayReport.title})${hoveredReport ? ' · Hover Preview' : ''}`
+                : 'Click any marker to inspect exact coordinates & directions'}
             </span>
           </div>
         </div>
@@ -598,10 +998,10 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
         {/* Right Column: Dynamic Report Information Panel or Search Result Panel */}
         <div className="lg:col-span-5 w-full">
           <AnimatePresence mode="wait">
-            {selectedReport ? (
+            {activeDisplayReport ? (
               /* REAL REGISTERED REPORT INSPECTION CARD */
               <motion.div
-                key={selectedReport.id}
+                key={activeDisplayReport.id}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
@@ -614,54 +1014,64 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                          selectedReport.isRealDatabaseRecord
+                          hoveredReport
+                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                            : activeDisplayReport.isRealDatabaseRecord
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                             : 'bg-amber-100 text-amber-800 border border-amber-300'
                         }`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />
                         <span>
-                          {selectedReport.isRealDatabaseRecord ? 'Live SQLite Record' : 'Demo Corridor'}
+                          {hoveredReport
+                            ? 'Marker Hover Preview'
+                            : activeDisplayReport.isRealDatabaseRecord
+                            ? 'Live Registry Record'
+                            : 'Demo Corridor'}
                         </span>
                       </span>
 
-                      {selectedReport.status && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-surface-container-high border border-outline-variant/40 text-on-surface">
+                        #{activeDisplayReport.reportId || activeDisplayReport.trackingNumber || activeDisplayReport.id}
+                      </span>
+
+                      {activeDisplayReport.status && (
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${
-                            selectedReport.status === 'RESOLVED'
+                            activeDisplayReport.status === 'RESOLVED'
                               ? 'bg-emerald-600 text-white'
-                              : selectedReport.status === 'IN_PROGRESS'
+                              : activeDisplayReport.status === 'IN_PROGRESS'
                               ? 'bg-amber-500 text-white'
-                              : selectedReport.status === 'ASSIGNED'
+                              : activeDisplayReport.status === 'ASSIGNED'
                               ? 'bg-blue-600 text-white'
                               : 'bg-rose-600 text-white'
                           }`}
                         >
-                          {selectedReport.status}
+                          {activeDisplayReport.status}
                         </span>
                       )}
 
-                      {selectedReport.severity && (
+                      {activeDisplayReport.severity && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-error/15 text-error">
-                          {selectedReport.severity} SEVERITY
+                          {activeDisplayReport.severity} SEVERITY
                         </span>
                       )}
                     </div>
 
                     <h3 className="text-lg sm:text-xl font-extrabold text-on-surface truncate">
-                      {selectedReport.title}
+                      {activeDisplayReport.title}
                     </h3>
                     <p className="text-xs text-secondary mt-0.5 leading-snug">
-                      {selectedReport.locationName}
+                      {activeDisplayReport.locationName}
                     </p>
                   </div>
 
                   {/* Stored GPS Badge */}
                   <div className="text-right shrink-0">
                     <span className="text-[11px] font-mono text-secondary bg-surface-container-low px-2 py-1 rounded-md border border-outline-variant/30 block">
-                      {selectedReport.lat.toFixed(5)}° N
+                      {activeDisplayReport.lat.toFixed(5)}° N
                       <br />
-                      {selectedReport.lng.toFixed(5)}° E
+                      {activeDisplayReport.lng.toFixed(5)}° E
                     </span>
                   </div>
                 </div>
@@ -675,7 +1085,7 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
                       </span>
                       <span>Photographic Verification Proof</span>
                     </span>
-                    {selectedReport.status === 'RESOLVED' ? (
+                    {activeDisplayReport.status === 'RESOLVED' ? (
                       <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                         Level-1 Certified Pass
                       </span>
@@ -691,7 +1101,7 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
                     <div className="space-y-1">
                       <div className="relative aspect-[16/11] rounded-xl overflow-hidden border border-error/30 bg-surface-container shadow-xs">
                         <PotholeImage
-                          src={selectedReport.beforePhotoUrl}
+                          src={activeDisplayReport.beforePhotoUrl}
                           alt="Pre-repair road defect"
                           className="w-full h-full object-cover"
                           fallbackType="critical"
@@ -709,10 +1119,10 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
                     {/* Post-Repair Photo */}
                     <div className="space-y-1">
                       <div className="relative aspect-[16/11] rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container shadow-xs flex items-center justify-center">
-                        {selectedReport.afterPhotoUrl ? (
+                        {activeDisplayReport.afterPhotoUrl ? (
                           <>
                             <PotholeImage
-                              src={selectedReport.afterPhotoUrl}
+                              src={activeDisplayReport.afterPhotoUrl}
                               alt="Restored road surface"
                               className="w-full h-full object-cover"
                               fallbackType="restored"
@@ -738,7 +1148,7 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
                         )}
                       </div>
                       <span className="text-[10px] text-secondary font-medium block text-center">
-                        {selectedReport.afterPhotoUrl ? 'Compacted Restoration' : 'Status: In Progress'}
+                        {activeDisplayReport.afterPhotoUrl ? 'Compacted Restoration' : 'Status: In Progress'}
                       </span>
                     </div>
                   </div>
@@ -748,41 +1158,40 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
                 <div className="bg-surface-container-low/70 p-3 rounded-xl border border-outline-variant/30 space-y-1 text-xs">
                   <div className="flex items-center justify-between text-secondary text-[11px]">
                     <span>Recorded Timestamp:</span>
-                    <span className="font-semibold text-on-surface">{selectedReport.completedDate}</span>
+                    <span className="font-semibold text-on-surface">{activeDisplayReport.completedDate}</span>
                   </div>
                   <div className="flex items-center justify-between text-secondary text-[11px]">
                     <span>Assigned Squad / Authority:</span>
-                    <span className="font-semibold text-primary">{selectedReport.inspectorName}</span>
+                    <span className="font-semibold text-primary">{activeDisplayReport.inspectorName}</span>
                   </div>
-                  {selectedReport.notes && (
+                  {activeDisplayReport.notes && (
                     <p className="text-[11px] text-on-surface/90 pt-1 border-t border-outline-variant/20 italic">
-                      "{selectedReport.notes}"
+                      "{activeDisplayReport.notes}"
                     </p>
                   )}
                 </div>
 
-                {/* Google Maps Actions */}
+                {/* Driving Directions Actions */}
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-outline-variant/30">
-                  <a
-                    href={googleMapsSearchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2.5 px-3 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-outline-variant/30 shadow-xs cursor-pointer"
-                    title="Open exact coordinate in Google Maps"
+                  <button
+                    type="button"
+                    onClick={() => handleGetDirections(activeDisplayReport)}
+                    className="py-2.5 px-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    title="Calculate in-map driving route from your location"
                   >
-                    <span className="material-symbols-outlined text-[17px] text-primary">open_in_new</span>
-                    <span>Open Google Maps</span>
-                  </a>
+                    <span className="material-symbols-outlined text-[17px]">directions</span>
+                    <span>Get Directions</span>
+                  </button>
 
                   <a
                     href={googleMapsDirectionsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2.5 px-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                    title="Get turn-by-turn driving directions to repair site"
+                    className="py-2.5 px-3 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-outline-variant/30 shadow-xs cursor-pointer"
+                    title="Open turn-by-turn driving directions in Google Maps app"
                   >
-                    <span className="material-symbols-outlined text-[17px]">directions</span>
-                    <span>Get Directions</span>
+                    <span className="material-symbols-outlined text-[17px] text-primary">open_in_new</span>
+                    <span>Google Maps</span>
                   </a>
                 </div>
               </motion.div>
@@ -888,3 +1297,5 @@ export const DetailedStreetMap: React.FC<DetailedStreetMapProps> = ({
     </div>
   );
 };
+
+export default DetailedStreetMap;

@@ -82,6 +82,20 @@ export const PublicLayout: React.FC = () => {
               <span className="material-symbols-outlined text-[16px]">mail</span>
               <span>Citizen Resolution Preview</span>
             </Link>
+
+            <Link
+              to={isAuthenticated && user?.role === 'COMPANY' ? '/company' : '/company/login'}
+              className={`font-title-md text-label-md transition-all flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${
+                location.pathname.startsWith('/company')
+                  ? 'bg-teal-500/15 border-teal-500/40 text-teal-700 dark:text-teal-300 font-bold'
+                  : 'border-teal-500/30 text-teal-700 dark:text-teal-400 hover:bg-teal-500/10'
+              }`}
+              title="Corporate & CSR Road Repair Sponsorship Portal"
+            >
+              <span className="material-symbols-outlined text-[16px]">domain</span>
+              <span>Company / CSR</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-teal-600 text-white text-[9px] font-bold uppercase tracking-wider">CSR</span>
+            </Link>
           </nav>
 
           {/* Action CTAs */}
@@ -138,6 +152,7 @@ export const PublicLayout: React.FC = () => {
             <a href="#how-it-works" className="hover:text-primary transition-colors">Lifecycle Audit</a>
             <a href="#impact" className="hover:text-primary transition-colors">3D Impact Map</a>
             <Link to="/resolution-preview" className="hover:text-primary transition-colors">Resolution Dispatch</Link>
+            <Link to="/company" className="hover:text-teal-600 transition-colors font-semibold text-teal-700 dark:text-teal-400">CSR Road Sponsorship</Link>
             <Link to="/login" className="hover:text-primary transition-colors">Municipal Sign-In</Link>
           </div>
         </div>
